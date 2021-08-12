@@ -1,0 +1,21 @@
+external_components:
+  - source: github://berfenger/esphome_components
+    components: [ max44009 ]
+esphome:
+  name: example_max44009
+  platform: ESP32
+  board: esp32dev
+
+logger:
+  level: DEBUG
+
+i2c:
+  sda: 25
+  scl: 26
+  scan: False
+  frequency: 100khz
+
+sensor:
+  - platform: max44009
+    name: "My MAX Temperature"
+    update_interval: 5s

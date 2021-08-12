@@ -17,3 +17,16 @@ MCP4728 is a quad channel, 12-bit voltage output Digital-to-Analog Converter wit
    * SingleWrite mode.
 
 See [example_mcp4728.yaml](./example_mcp4728.yaml) for a reference usage file.
+
+## MAX44009
+The MAX44009 is an ambient light sensor featuring an I2C digital output
+ * Supported features
+   * Measure lux intensity
+   * Low power mode: default mode for an update interval >= 800ms.
+   * Continuous mode: default mode for an update interval < 800ms.
+   * The device run always on auto mode (hardware default).
+ * Unsupported features
+   * Manual mode.
+   * Advanced power saving features (timers, thresholds, INT pin).
+
+See [example_max44009.yaml](./example_max44009.yaml) for a reference usage file.
