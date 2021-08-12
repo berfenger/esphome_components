@@ -1,0 +1,64 @@
+external_components:
+  - source: github://berfenger/esphome_components
+    components: [ mcp4728 ]
+esphome:
+  name: example_mcp4728
+  platform: ESP32
+  board: esp32dev
+
+logger:
+  level: DEBUG
+
+output:
+  - platform: mcp4728
+    id: ac_dimmer_1
+    mcp4728_id: the_dac
+    channel: 0 # channel A, VREF=VDD
+  - platform: mcp4728
+    id: ac_dimmer_2
+    mcp4728_id: the_dac
+    channel: 1 # channel B, VREF=VDD
+  - platform: mcp4728
+    id: ac_dimmer_3
+    mcp4728_id: the_dac
+    channel: 2 # channel C, VREF=VDD
+  - platform: mcp4728
+    id: light_dimmer_1
+    mcp4728_id: the_dac
+    channel: 3 # channel D
+    vdd: False # VREF = internal (2.048V)
+    gain: 2 # gain X2
+
+i2c:
+  sda: 25
+  scl: 26
+  scan: False
+  frequency: 100khz
+
+mcp4728:
+  - id: the_dac
+    address: 0x60
+    eeprom: False # don't save settings to eeprom. False = MultiWrite
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: 14
+      mode: INPUT_PULLUP
+      inverted: False
+    name: "Change button"
+    internal: True
+    on_press:
+      then:
+        - output.set_level:
+            id: ac_dimmer_1
+            level: 25%
+        - output.set_level:
+            id: ac_dimmer_2
+            level: 50%
+        - output.set_level:
+            id: ac_dimmer_3
+            level: 75%
+        - output.set_level:
+            id: ac_dimmer_4
+            level: 100%
