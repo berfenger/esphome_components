@@ -60,5 +60,5 @@ binary_sensor:
             id: ac_dimmer_3
             level: 75%
         - output.set_level:
-            id: ac_dimmer_4
+            id: light_dimmer_1
             level: 100%
