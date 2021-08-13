@@ -34,17 +34,24 @@ void MAX44009Sensor::setup() {
     this->mark_failed();
     return;
   }
-  /* 
-   * Set mode depending on update interval
-   * - On low power mode, the IC measures lux intensity only once every 800ms regardless of integration time
-   * - On continuous mode, the IC continuously measures lux intensity
-   */
-  if (this->get_update_interval() < 800) {
+  if (_mode == MAX44009Mode::MAX44009_MODE_LOW_POWER) {
+    this->setLowPowerMode();
+  } else if (_mode == MAX44009Mode::MAX44009_MODE_CONTINUOUS) {
     this->setContinuousMode();
   } else {
-    this->setLowPowerMode();
+    /* 
+    * Mode AUTO: Set mode depending on update interval
+    * - On low power mode, the IC measures lux intensity only once every 800ms regardless of integration time
+    * - On continuous mode, the IC continuously measures lux intensity
+    */
+    if (this->get_update_interval() < 800) {
+      this->setContinuousMode();
+    } else {
+      this->setLowPowerMode();
+    }
   }
 }
+
 void MAX44009Sensor::dump_config() {
   ESP_LOGCONFIG(TAG, "MAX44009:");
   LOG_I2C_DEVICE(this);
@@ -52,6 +59,7 @@ void MAX44009Sensor::dump_config() {
     ESP_LOGE(TAG, "Communication with MAX44009 failed!");
   }
 }
+
 float MAX44009Sensor::get_setup_priority() const { return setup_priority::HARDWARE; }
 
 void MAX44009Sensor::update() {
@@ -112,8 +120,7 @@ void MAX44009Sensor::setLowPowerMode() {
   }
 }
 
-uint8_t MAX44009Sensor::read(uint8_t reg)
-{
+uint8_t MAX44009Sensor::read(uint8_t reg) {
   uint8_t data;
   if (!this->read_byte(reg, &data)) {
     _error = MAX44009_ERROR_WIRE_REQUEST;
@@ -123,9 +130,7 @@ uint8_t MAX44009Sensor::read(uint8_t reg)
   return data;
 }
 
-
-void MAX44009Sensor::write(uint8_t reg, uint8_t value)
-{
+void MAX44009Sensor::write(uint8_t reg, uint8_t value) {
   if (!this->write_byte(reg, value)) {
     _error = MAX44009_ERROR_WIRE_REQUEST;
   } else {

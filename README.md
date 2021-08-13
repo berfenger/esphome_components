@@ -22,9 +22,11 @@ See [example_mcp4728.yaml](./example_mcp4728.yaml) for a reference usage file.
 The MAX44009 is an ambient light sensor featuring an I2C digital output
  * Supported features
    * Measure lux intensity
-   * Low power mode: default mode for an update interval >= 800ms.
-   * Continuous mode: default mode for an update interval < 800ms.
-   * The device run always on auto mode (hardware default).
+   * Measure mode selection:
+     * Low power: The IC measures lux intensity only once every 800ms regardless of integration time.
+     * Continuous mode: The IC continuously measures lux intensity.
+     * Auto: Continuous mode for an update interval < 800ms, low power mode otherwise.
+   * The device always runs on auto mode (hardware default).
  * Unsupported features
    * Manual mode.
    * Advanced power saving features (timers, thresholds, INT pin).
