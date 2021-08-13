@@ -6,8 +6,8 @@ All content is published under the ESPHome license.
 MCP4728 is a quad channel, 12-bit voltage output Digital-to-Analog Converter with non-volatile memory and I2C compatible Serial Interface.
  * Supported features
    * Each channel is exported as a `float output`.
-   * Output Vref can be selected between VDD and internal 2.048V.
-   * For internal 2.048V Vref, two levels of gain can be selected (X1 (default), X2).
+   * Output Vref can be selected between `vdd` and `internal` (2.048V).
+   * For `internal` Vref, two levels of gain can be selected (`X1` (default) and `X2`).
    * Two write modes are supported:
      * MultiWrite: write all channel settings without writing to non-volatile memory (EEPROM). This is the default and recommended mode.
      * SequentialWrite: write all channel settings to non-volatile memory (EEPROM) and apply this changes.

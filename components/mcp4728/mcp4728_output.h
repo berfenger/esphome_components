@@ -18,15 +18,15 @@ enum class CMD
     SELECT_PWRDOWN = 0xA0
 };
 
-enum class VREF { VDD, INTERNAL_2_8V };
+enum MCP4728_VREF { MCP4728_VREF_VDD, MCP4728_VREF_INTERNAL_2_8V };
 enum class PWR_DOWN { NORMAL, GND_1KOHM, GND_100KOHM, GND_500KOHM };
-enum class GAIN { X1, X2 };
+enum MCP4728_GAIN { MCP4728_GAIN_X1, MCP4728_GAIN_X2 };
 
 struct DACInputData
 {
-    VREF vref;
+    MCP4728_VREF vref;
     PWR_DOWN pd;
-    GAIN gain;
+    MCP4728_GAIN gain;
     uint16_t data;
 };
 
@@ -37,7 +37,7 @@ class MCP4728Output : public Component, public i2c::I2CDevice {
  public:
   MCP4728Output(bool eeprom): eeprom(eeprom) {}
 
-  MCP4728Channel *create_channel(uint8_t channel, bool use_vdd, int gain);
+  MCP4728Channel *create_channel(uint8_t channel, MCP4728_VREF vref, MCP4728_GAIN gain);
 
   void setup() override;
   void dump_config() override;
@@ -50,9 +50,9 @@ class MCP4728Output : public Component, public i2c::I2CDevice {
   void set_channel_value(uint8_t channel, uint16_t value);
   uint8_t multiWrite();
   uint8_t seqWrite();
-  void selectVref(uint8_t channel, VREF vref);
+  void selectVref(uint8_t channel, MCP4728_VREF vref);
   void selectPowerDown(uint8_t channel, PWR_DOWN pd);
-  void selectGain(uint8_t channel, GAIN gain);
+  void selectGain(uint8_t channel, MCP4728_GAIN gain);
 
  private:
   DACInputData reg_[4];
@@ -62,22 +62,14 @@ class MCP4728Output : public Component, public i2c::I2CDevice {
 
 class MCP4728Channel : public output::FloatOutput {
  public:
-  MCP4728Channel(MCP4728Output *parent, uint8_t channel, bool use_vdd, int gain) : 
-    parent_(parent), channel_(channel), use_vdd_(use_vdd), gain_(gain) {
+  MCP4728Channel(MCP4728Output *parent, uint8_t channel, MCP4728_VREF vref, MCP4728_GAIN gain) : 
+    parent_(parent), channel_(channel), vref_(vref), gain_(gain) {
       // update VREF
-      VREF vr = VREF::VDD;
-      if (!use_vdd) {
-        vr = VREF::INTERNAL_2_8V;
-      }
-      parent->selectVref(channel, vr);
+      parent->selectVref(channel, vref_);
       // update PD
       parent->selectPowerDown(channel, PWR_DOWN::NORMAL);
       // update GAIN
-      GAIN ga = GAIN::X1;
-      if (gain == 2) {
-        ga = GAIN::X2;
-      }
-      parent->selectGain(channel, ga);
+      parent->selectGain(channel, gain_);
     }
 
  protected:
@@ -85,8 +77,8 @@ class MCP4728Channel : public output::FloatOutput {
 
   MCP4728Output *parent_;
   uint8_t channel_;
-  bool use_vdd_;
-  bool gain_;
+  MCP4728_VREF vref_;
+  MCP4728_GAIN gain_;
 };
 
 }  // namespace mcp4728

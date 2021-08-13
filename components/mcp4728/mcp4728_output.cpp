@@ -72,7 +72,7 @@ uint8_t MCP4728Output::seqWrite() {
   return this->raw_end_transmission();
 }
 
-void MCP4728Output::selectVref(uint8_t channel, VREF vref) {
+void MCP4728Output::selectVref(uint8_t channel, MCP4728_VREF vref) {
   reg_[channel].vref = vref;
 
   this->update = true;
@@ -84,14 +84,14 @@ void MCP4728Output::selectPowerDown(uint8_t channel, PWR_DOWN pd) {
   this->update = true;
 }
 
-void MCP4728Output::selectGain(uint8_t channel, GAIN gain) {
+void MCP4728Output::selectGain(uint8_t channel, MCP4728_GAIN gain) {
   reg_[channel].gain = gain;
 
   this->update = true;
 }
 
-MCP4728Channel *MCP4728Output::create_channel(uint8_t channel, bool use_vdd, int gain) {
-  auto *c = new MCP4728Channel(this, channel, use_vdd, gain);
+MCP4728Channel *MCP4728Output::create_channel(uint8_t channel, MCP4728_VREF vref, MCP4728_GAIN gain) {
+  auto *c = new MCP4728Channel(this, channel, vref, gain);
   return c;
 }
 
