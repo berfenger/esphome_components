@@ -16,10 +16,10 @@ MCP4728 is a quad channel, 12-bit voltage output Digital-to-Analog Converter wit
    * FastWrite mode as this requires the LDAC pin.
    * SingleWrite mode.
 
-See [example_mcp4728.yaml](./example_mcp4728.yaml) for a reference usage file.
+Check [example_mcp4728.yaml](./example_mcp4728.yaml) for a reference usage file.
 
 ## MAX44009
-The MAX44009 is an ambient light sensor featuring an I2C digital output
+The MAX44009 is an ambient light sensor featuring an I2C digital output.
  * Supported features
    * Measure lux intensity
    * Measure mode selection:
@@ -31,4 +31,19 @@ The MAX44009 is an ambient light sensor featuring an I2C digital output
    * Manual mode.
    * Advanced power saving features (timers, thresholds, INT pin).
 
-See [example_max44009.yaml](./example_max44009.yaml) for a reference usage file.
+Check [example_max44009.yaml](./example_max44009.yaml) for a reference usage file.
+
+## SI1145/46/47
+The SI1145 is a sensor IC with a calibrated light sensing algorithm that can calculate UV Index. It doesn't contain an actual UV sensing element, instead it approximates it based on visible & IR light from the sun.
+ * Supported features
+   * Measure visible light (`visible`)
+   * Measure IR light (`infrared`)
+   * Measure UV index (`uvindex`)
+   * Combine visible and IR sensors to approximate total lux (`illuminance`)
+   * Auto range and gain `mode: auto`
+   * Manual range and gain `mode: manual`
+ * Unsupported features
+   * IR based proximity sensor
+   * Relative temperature sensor
+
+Check [example_si1145.yaml](./example_si1145.yaml) for a reference usage file.

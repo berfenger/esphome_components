@@ -1,0 +1,36 @@
+external_components:
+  - source: github://berfenger/esphome_components
+    components: [ si1145 ]
+esphome:
+  name: example_si1145
+  platform: ESP32
+  board: esp32dev
+
+logger:
+  level: DEBUG
+
+i2c:
+  sda: 25
+  scl: 26
+  scan: False
+  frequency: 100khz
+
+sensor:
+  - platform: si1145
+    illuminance:
+      name: "Lux sensor"
+    visible:
+      name: "VIS sensor"
+      temp_correction: False
+      mode: auto # default
+      range: high # default
+      gain: 0 # default
+    infrared:
+      name: "IR1 sensor"
+      temp_correction: False
+      mode: manual
+      range: low
+      gain: 2
+    uv:
+      name: "UV index sensor"
+    update_interval: 5s
