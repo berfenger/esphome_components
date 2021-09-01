@@ -3,22 +3,25 @@ import esphome.config_validation as cv
 from esphome.components import i2c, sensor
 from esphome.const import (
     CONF_ID,
-    CONF_ILLUMINANCE,
     CONF_RANGE,
     CONF_GAIN,
     CONF_MODE,
+    DEVICE_CLASS_EMPTY,
     DEVICE_CLASS_ILLUMINANCE,
     STATE_CLASS_MEASUREMENT,
     CONF_STATE_CLASS,
+    UNIT_EMPTY,
     UNIT_LUX,
     UNIT_STEPS,
-    ICON_EMPTY
+    ICON_BRIGHTNESS_5
 )
 
+CONF_CALCULATED_LUX = "calculated_lux"
 CONF_INFRARED = "infrared"
 CONF_VISIBLE = "visible"
 CONF_UV = "uvindex"
 CONF_TEMP_CORRECTION = "temp_correction"
+ICON_UV = "mdi:sun-wireless"
 
 DEPENDENCIES = ["i2c"]
 
@@ -45,7 +48,7 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(SI1145Component),
             cv.Optional(CONF_VISIBLE): sensor.sensor_schema(
-                UNIT_LUX, ICON_EMPTY, 0, DEVICE_CLASS_ILLUMINANCE
+                UNIT_EMPTY, ICON_BRIGHTNESS_5, 0, DEVICE_CLASS_EMPTY
             ).extend(
                 {
                     cv.Optional(CONF_STATE_CLASS, default=STATE_CLASS_MEASUREMENT): sensor.validate_state_class,
@@ -60,7 +63,7 @@ CONFIG_SCHEMA = (
                 }
             ),
             cv.Optional(CONF_INFRARED): sensor.sensor_schema(
-                UNIT_LUX, ICON_EMPTY, 0, DEVICE_CLASS_ILLUMINANCE
+                UNIT_EMPTY, ICON_BRIGHTNESS_5, 0, DEVICE_CLASS_EMPTY
             ).extend(
                 {
                     cv.Optional(CONF_STATE_CLASS, default=STATE_CLASS_MEASUREMENT): sensor.validate_state_class,
@@ -75,14 +78,14 @@ CONFIG_SCHEMA = (
                 }
             ),
             cv.Optional(CONF_UV): sensor.sensor_schema(
-                UNIT_STEPS, ICON_EMPTY, 0, DEVICE_CLASS_ILLUMINANCE
+                UNIT_STEPS, ICON_UV, 0, DEVICE_CLASS_EMPTY
             ).extend(
                 {
                     cv.Optional(CONF_STATE_CLASS, default=STATE_CLASS_MEASUREMENT): sensor.validate_state_class,
                 }
             ),
-            cv.Optional(CONF_ILLUMINANCE): sensor.sensor_schema(
-                UNIT_LUX, ICON_EMPTY, 0, DEVICE_CLASS_ILLUMINANCE
+            cv.Optional(CONF_CALCULATED_LUX): sensor.sensor_schema(
+                UNIT_LUX, ICON_BRIGHTNESS_5, 0, DEVICE_CLASS_ILLUMINANCE
             ).extend(
                 {
                     cv.Optional(CONF_STATE_CLASS, default=STATE_CLASS_MEASUREMENT): sensor.validate_state_class,
@@ -123,7 +126,7 @@ async def to_code(config):
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_uvindex_sensor(sens))
 
-    if CONF_ILLUMINANCE in config:
-        conf = config[CONF_ILLUMINANCE]
+    if CONF_CALCULATED_LUX in config:
+        conf = config[CONF_CALCULATED_LUX]
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_illuminance_sensor(sens))

@@ -17,7 +17,7 @@ i2c:
 
 sensor:
   - platform: si1145
-    illuminance:
+    calculated_lux:
       name: "Lux sensor"
     visible:
       name: "VIS sensor"
@@ -26,11 +26,11 @@ sensor:
       range: high # default
       gain: 0 # default
     infrared:
-      name: "IR1 sensor"
+      name: "IR sensor"
       temp_correction: False
       mode: manual
       range: low
       gain: 2
-    uv:
+    uvindex:
       name: "UV index sensor"
     update_interval: 5s

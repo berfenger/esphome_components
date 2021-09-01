@@ -39,7 +39,7 @@ The SI1145 is a sensor IC with a calibrated light sensing algorithm that can cal
    * Measure visible light (`visible`)
    * Measure IR light (`infrared`)
    * Measure UV index (`uvindex`)
-   * Combine visible and IR sensors to approximate total lux (`illuminance`)
+   * Combine visible and IR sensors to approximate total lux (`calculated_lux`)
    * Auto range and gain `mode: auto`
    * Manual range and gain `mode: manual`
  * Unsupported features
