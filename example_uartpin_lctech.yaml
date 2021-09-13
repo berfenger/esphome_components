@@ -1,0 +1,33 @@
+external_components:
+  - source: github://berfenger/esphome_components
+    components: [ uartpin ]
+esphome:
+  name: example_uartpin
+  platform: ESP32
+  board: esp32dev
+
+logger:
+  level: DEBUG
+
+output:
+  - platform: uartpin
+    id: light_switch_1
+    uartpin_id: lc_dual_relay
+    data_high: [0xA0, 0x01, 0x01, 0xA2]
+    data_low: [0xA0, 0x01, 0x00, 0xA1]
+  - platform: uartpin
+    id: light_switch_2
+    uartpin_id: lc_dual_relay
+    data_high: [0xA0, 0x02, 0x01, 0xA3]
+    data_low: [0xA0, 0x02, 0x00, 0xA2]
+
+uartpin:
+  - id: lc_dual_relay
+    delay: 5s
+    init_data: [0x30, 0x2C, 0x43, 0x4F, 0x4E, 0x4E, 0x45, 0x43, 0x54, 0x0D, 0x0A] # init and turn off wifi connection LED
+
+uart:
+  id: uart_bus
+  baud_rate: 115200
+  tx_pin: GPIO14
+  rx_pin: GPIO12

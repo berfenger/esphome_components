@@ -47,3 +47,12 @@ The SI1145 is a sensor IC with a calibrated light sensing algorithm that can cal
    * Relative temperature sensor
 
 Check [example_si1145.yaml](./example_si1145.yaml) for a reference usage file.
+
+## UARTPIN
+This component is intended to support relay modules controllable through UART (serial) like the relay modules from LC Technology. Currently, the LC Technology modules based on Nuvoton microcontroller are not supported.
+ * Supported features
+   * Send init data after a delay.
+   * Send data to set pin/relay high.
+   * Send data to set pin/relay low.
+
+Check [example_uartpin_lctech.yaml](./example_uartpin_lctech.yaml) for a reference usage file for an LC Technology Dual Relay module.
