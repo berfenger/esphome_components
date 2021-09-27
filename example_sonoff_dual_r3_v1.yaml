@@ -1,0 +1,84 @@
+external_components:
+  - source: github://berfenger/esphome_components
+    components: [ cse7761 ]
+esphome:
+  name: example_sonoff_dual_r3_v1
+  platform: ESP32
+  board: esp-wrover-kit
+
+logger:
+  level: DEBUG
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO0
+      mode: INPUT_PULLUP
+      inverted: True
+    name: "Cover button"
+    internal: True
+    on_click:
+      then:
+        - switch.toggle: switch_relay1
+    on_double_click:
+      then:
+        - switch.toggle: switch_relay2
+
+status_led:
+  pin: 
+    number: GPIO13
+    inverted: true
+
+output:
+  - platform: gpio
+    pin: GPIO27
+    id: cover_led_relay1
+  - platform: gpio
+    pin: GPIO14
+    id: cover_led_relay2
+
+switch:
+  - platform: gpio
+    id: switch_relay1
+    pin:
+      number: GPIO32
+      inverted: true
+    on_turn_on:
+      then:
+        - output.turn_on: cover_led_relay1
+    on_turn_off:
+      then:
+        - output.turn_off: cover_led_relay1
+  - platform: gpio
+    id: switch_relay2
+    pin:
+      number: GPIO33
+      inverted: true
+    on_turn_on:
+      then:
+        - output.turn_on: cover_led_relay2
+    on_turn_off:
+      then:
+        - output.turn_off: cover_led_relay2
+
+sensor:
+  platform: cse7761
+  update_interval: 5s
+  voltage:
+    name: CSE7761 Voltage
+  current_1:
+    name: CSE7761 Current 1
+  current_2:
+    name: CSE7761 Current 2
+  active_power_1:
+    name: CSE7761 Active Power 1
+  active_power_2:
+    name: CSE7761 Active Power 2
+
+# cse7761 uart port
+uart:
+  tx_pin: GPIO25
+  rx_pin: GPIO26
+  baud_rate: 38400
+  parity: EVEN
+  stop_bits: 1

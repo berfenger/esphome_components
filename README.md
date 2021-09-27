@@ -56,3 +56,17 @@ This component is intended to support relay modules controllable through UART (s
    * Send data to set pin/relay low.
 
 Check [example_uartpin_lctech.yaml](./example_uartpin_lctech.yaml) for a reference usage file for an LC Technology Dual Relay module.
+
+## CSE7761 (UART)
+The CSE7761 is a dual channel power sensor present on the Sonoff Dual R3 v1. 
+ * Supported features
+   * Voltage sensor
+   * Current sensor for channels 1 and 2.
+   * Power sensor for channels 1 and 2.
+ * Unsupported features
+   * Frequency sensor
+   * Zero cross detection
+
+Check [example_sonoff_dual_r3_v1.yaml](./example_sonoff_dual_r3_v1.yaml) for a reference usage file for a Sonoff Dual R3 v1.
+
+The new Sonoff Dual R3 v2 features a different power sensor (BL0939) wich is **not** compatible with this component.
