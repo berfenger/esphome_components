@@ -23,43 +23,60 @@ binary_sensor:
     on_double_click:
       then:
         - switch.toggle: switch_relay2
+  - platform: gpio
+    pin:
+      number: GPIO32
+      mode: INPUT_PULLDOWN
+    name: "Momentary switch 1"
+    internal: True
+    on_click:
+      then:
+        - switch.toggle: switch_relay1
+  - platform: gpio
+    pin:
+      number: GPIO33
+      mode: INPUT_PULLDOWN
+    name: "Momentary switch 2"
+    internal: True
+    on_click:
+      then:
+        - switch.toggle: switch_relay2
+  # use this config for latching switches
+  # - platform: gpio
+  #   pin:
+  #     number: GPIO32
+  #     mode: INPUT_PULLDOWN
+  #   name: "Momentary switch 1"
+  #   internal: True
+  #   on_state:
+  #     then:
+  #       - switch.toggle: switch_relay1
+  # - platform: gpio
+  #   pin:
+  #     number: GPIO33
+  #     mode: INPUT_PULLDOWN
+  #   name: "Momentary switch 2"
+  #   internal: True
+  #   on_state:
+  #     then:
+  #       - switch.toggle: switch_relay2
 
 status_led:
   pin: 
     number: GPIO13
     inverted: true
 
-output:
-  - platform: gpio
-    pin: GPIO27
-    id: cover_led_relay1
-  - platform: gpio
-    pin: GPIO14
-    id: cover_led_relay2
-
 switch:
   - platform: gpio
     id: switch_relay1
     pin:
-      number: GPIO32
+      number: GPIO27
       inverted: true
-    on_turn_on:
-      then:
-        - output.turn_on: cover_led_relay1
-    on_turn_off:
-      then:
-        - output.turn_off: cover_led_relay1
   - platform: gpio
     id: switch_relay2
     pin:
-      number: GPIO33
+      number: GPIO14
       inverted: true
-    on_turn_on:
-      then:
-        - output.turn_on: cover_led_relay2
-    on_turn_off:
-      then:
-        - output.turn_off: cover_led_relay2
 
 sensor:
   platform: cse7761
