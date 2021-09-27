@@ -1,5 +1,5 @@
 # ESPHome Components 
-This is my particular collection of ESPHome components to add support for unsupported devices on mainline ESPHome.
+This is my personal collection of ESPHome components to add support for unsupported devices on mainline ESPHome.
 All content is published under the ESPHome license.
 
 ## MCP4728
