@@ -6,9 +6,7 @@ from esphome.const import (
     CONF_MODE,
     DEVICE_CLASS_ILLUMINANCE,
     STATE_CLASS_MEASUREMENT,
-    UNIT_LUX,
-    CONF_STATE_CLASS,
-    ICON_EMPTY
+    UNIT_LUX
 )
 
 DEPENDENCIES = ["i2c"]
@@ -25,13 +23,16 @@ MODE_OPTIONS = {
     "continuous": MAX44009Mode.MAX44009_MODE_CONTINUOUS
 }
 
-CONFIG_SCHEMA = (sensor.sensor_schema(
-        UNIT_LUX, ICON_EMPTY, 0, DEVICE_CLASS_ILLUMINANCE
+CONFIG_SCHEMA = (
+    sensor.sensor_schema(
+        unit_of_measurement=UNIT_LUX,
+        accuracy_decimals=0,
+        device_class=DEVICE_CLASS_ILLUMINANCE,
+        state_class=STATE_CLASS_MEASUREMENT,
     )
     .extend(
         {
             cv.GenerateID(): cv.declare_id(MAX44009Sensor),
-            cv.Optional(CONF_STATE_CLASS, default=STATE_CLASS_MEASUREMENT): sensor.validate_state_class,
             cv.Optional(CONF_MODE, default="auto"): cv.enum(
                 MODE_OPTIONS, upper=False
             ),
@@ -42,7 +43,9 @@ CONFIG_SCHEMA = (sensor.sensor_schema(
 )
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID], config[CONF_MODE])
+    var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
     await sensor.register_sensor(var, config)
+
+    cg.add(var.set_mode(config[CONF_MODE]))

@@ -1,4 +1,5 @@
 #include "max44009.h"
+
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -7,20 +8,20 @@ namespace max44009 {
 static const char *const TAG = "max44009.sensor";
 
 // REGISTERS
-#define MAX44009_REGISTER_CONFIGURATION      0x02
-#define MAX44009_LUX_READING_HIGH            0x03
-#define MAX44009_LUX_READING_LOW             0x04
+#define MAX44009_REGISTER_CONFIGURATION 0x02
+#define MAX44009_LUX_READING_HIGH 0x03
+#define MAX44009_LUX_READING_LOW 0x04
 // CONFIGURATION MASKS
-#define MAX44009_CFG_CONTINUOUS     0x80
+#define MAX44009_CFG_CONTINUOUS 0x80
 // ERROR CODES
-#define MAX44009_OK                     0
-#define MAX44009_ERROR_WIRE_REQUEST    -10
-#define MAX44009_ERROR_OVERFLOW        -20
-#define MAX44009_ERROR_HIGH_BYTE       -30
-#define MAX44009_ERROR_LOW_BYTE        -31
+#define MAX44009_OK 0
+#define MAX44009_ERROR_WIRE_REQUEST -10
+#define MAX44009_ERROR_OVERFLOW -20
+#define MAX44009_ERROR_HIGH_BYTE -30
+#define MAX44009_ERROR_LOW_BYTE -31
 
 inline int convertToLux(uint8_t datahigh, uint8_t datalow) {
-  uint8_t  exponent = datahigh >> 4;
+  uint8_t exponent = datahigh >> 4;
   uint32_t mantissa = ((datahigh & 0x0F) << 4) + (datalow & 0x0F);
   float lux = ((0x0001 << exponent) * 0.045) * mantissa;
   return roundf(lux);
@@ -35,19 +36,20 @@ void MAX44009Sensor::setup() {
     return;
   }
   if (_mode == MAX44009Mode::MAX44009_MODE_LOW_POWER) {
-    this->setLowPowerMode();
+    this->set_low_power_mode();
   } else if (_mode == MAX44009Mode::MAX44009_MODE_CONTINUOUS) {
-    this->setContinuousMode();
+    this->set_continuous_mode();
   } else {
-    /* 
-    * Mode AUTO: Set mode depending on update interval
-    * - On low power mode, the IC measures lux intensity only once every 800ms regardless of integration time
-    * - On continuous mode, the IC continuously measures lux intensity
-    */
+    /*
+     * Mode AUTO: Set mode depending on update interval
+     * - On low power mode, the IC measures lux intensity only once every 800ms
+     * regardless of integration time
+     * - On continuous mode, the IC continuously measures lux intensity
+     */
     if (this->get_update_interval() < 800) {
-      this->setContinuousMode();
+      this->set_continuous_mode();
     } else {
-      this->setLowPowerMode();
+      this->set_low_power_mode();
     }
   }
 }
@@ -60,7 +62,9 @@ void MAX44009Sensor::dump_config() {
   }
 }
 
-float MAX44009Sensor::get_setup_priority() const { return setup_priority::HARDWARE; }
+float MAX44009Sensor::get_setup_priority() const {
+  return setup_priority::DATA;
+}
 
 void MAX44009Sensor::update() {
   // update sensor illuminance value
@@ -76,20 +80,17 @@ void MAX44009Sensor::update() {
 
 float MAX44009Sensor::read_illuminance_() {
   uint8_t datahigh = read(MAX44009_LUX_READING_HIGH);
-  if (_error != MAX44009_OK)
-  {
+  if (_error != MAX44009_OK) {
     _error = MAX44009_ERROR_HIGH_BYTE;
     return _error;
   }
   uint8_t datalow = read(MAX44009_LUX_READING_LOW);
-  if (_error != MAX44009_OK)
-  {
+  if (_error != MAX44009_OK) {
     _error = MAX44009_ERROR_LOW_BYTE;
     return _error;
   }
   uint8_t exponent = datahigh >> 4;
-  if (exponent == 0x0F)
-  {
+  if (exponent == 0x0F) {
     _error = MAX44009_ERROR_OVERFLOW;
     return _error;
   }
@@ -98,7 +99,7 @@ float MAX44009Sensor::read_illuminance_() {
   return lux;
 }
 
-void MAX44009Sensor::setContinuousMode() {
+void MAX44009Sensor::set_continuous_mode() {
   uint8_t config = read(MAX44009_REGISTER_CONFIGURATION);
   if (_error == MAX44009_OK) {
     config |= MAX44009_CFG_CONTINUOUS;
@@ -109,7 +110,7 @@ void MAX44009Sensor::setContinuousMode() {
   }
 }
 
-void MAX44009Sensor::setLowPowerMode() {
+void MAX44009Sensor::set_low_power_mode() {
   uint8_t config = read(MAX44009_REGISTER_CONFIGURATION);
   if (_error == MAX44009_OK) {
     config &= ~MAX44009_CFG_CONTINUOUS;
@@ -137,6 +138,8 @@ void MAX44009Sensor::write(uint8_t reg, uint8_t value) {
     _error = MAX44009_OK;
   }
 }
+
+void MAX44009Sensor::set_mode(MAX44009Mode mode) { this->_mode = mode; }
 
 }  // namespace max44009
 }  // namespace esphome

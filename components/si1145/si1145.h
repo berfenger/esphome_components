@@ -148,30 +148,14 @@ class SI1145Component : public PollingComponent, public i2c::I2CDevice {
   void set_illuminance_sensor(sensor::Sensor *illuminance_sensor) {
     illuminance_sensor_ = illuminance_sensor;
   }
-  void set_visible_auto(bool v) {
-    visible_mode_auto_ = v;
-  }
-  void set_infrared_auto(bool v) {
-    infrared_mode_auto_ = v;
-  }
-  void set_visible_temp_correction(bool v) {
-    visible_temp_correction_ = v;
-  }
-  void set_infrared_temp_correction(bool v) {
-    infrared_temp_correction_ = v;
-  }
-  void set_visible_range(Range v) {
-    visible_range_ = v;
-  }
-  void set_infrared_range(Range v) {
-    infrared_range_ = v;
-  }
-  void set_visible_gain(uint8_t v) {
-    visible_gain_ = v;
-  }
-  void set_infrared_gain(uint8_t v) {
-    infrared_gain_ = v;
-  }
+  void set_visible_auto(bool v) { visible_mode_auto_ = v; }
+  void set_infrared_auto(bool v) { infrared_mode_auto_ = v; }
+  void set_visible_temp_correction(bool v) { visible_temp_correction_ = v; }
+  void set_infrared_temp_correction(bool v) { infrared_temp_correction_ = v; }
+  void set_visible_range(Range v) { visible_range_ = v; }
+  void set_infrared_range(Range v) { infrared_range_ = v; }
+  void set_visible_gain(uint8_t v) { visible_gain_ = v; }
+  void set_infrared_gain(uint8_t v) { infrared_gain_ = v; }
 
   // ========== INTERNAL METHODS ==========
   // (In most use cases you won't need these)
@@ -194,10 +178,10 @@ class SI1145Component : public PollingComponent, public i2c::I2CDevice {
   // Reset
   void reset_();
   // Aux RW fns
-  void write8(uint8_t reg, uint8_t val);
-  uint8_t read8(uint8_t reg);
-  uint16_t read16(uint8_t reg);
-  uint8_t writeParam(uint8_t p, uint8_t v);
+  void write8_(uint8_t reg, uint8_t val);
+  uint8_t read8_(uint8_t reg);
+  uint16_t read16_(uint8_t reg);
+  uint8_t write_param_(uint8_t p, uint8_t v);
 
   void auto_range_visible_(uint16_t read_value);
   void auto_range_infrared_(uint16_t read_value);

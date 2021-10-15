@@ -107,55 +107,55 @@ float SI1145Component::get_setup_priority() const {
 
 void SI1145Component::update() {
   // force measure
-  write8(SI1145_REG_COMMAND, SI1145_ALS_FORCE);
+  write8_(SI1145_REG_COMMAND, SI1145_ALS_FORCE);
   delay(20);
 
   float vis;
   float ir;
   float tp;
-  uint8_t resp = read8(SI1145_REG_RESPONSE);
+  uint8_t resp = read8_(SI1145_REG_RESPONSE);
   switch (resp) {
     case 0x80:  // Invalid command
       vis = read_visible_();
       ir = read_infrared_();
       tp = read_temp_();
-      write8(SI1145_REG_COMMAND, SI1145_NOP);
+      write8_(SI1145_REG_COMMAND, SI1145_NOP);
       break;
     case 0x88:  // PS1 overflow
       vis = read_visible_();
       ir = read_infrared_();
       tp = read_temp_();
-      write8(SI1145_REG_COMMAND, SI1145_NOP);
+      write8_(SI1145_REG_COMMAND, SI1145_NOP);
       break;
     case 0x89:  // PS2 overflow
       vis = read_visible_();
       ir = read_infrared_();
       tp = read_temp_();
-      write8(SI1145_REG_COMMAND, SI1145_NOP);
+      write8_(SI1145_REG_COMMAND, SI1145_NOP);
       break;
     case 0x8A:  // PS3 overflow
       vis = read_visible_();
       ir = read_infrared_();
       tp = read_temp_();
-      write8(SI1145_REG_COMMAND, SI1145_NOP);
+      write8_(SI1145_REG_COMMAND, SI1145_NOP);
       break;
     case 0x8C:  // VIS overflow
       vis = OVERFLOW_VALUE;
       ir = read_infrared_();
       tp = read_temp_();
-      write8(SI1145_REG_COMMAND, SI1145_NOP);
+      write8_(SI1145_REG_COMMAND, SI1145_NOP);
       break;
     case 0x8D:  // IR overflow
       ir = OVERFLOW_VALUE;
       vis = read_visible_();
       tp = read_temp_();
-      write8(SI1145_REG_COMMAND, SI1145_NOP);
+      write8_(SI1145_REG_COMMAND, SI1145_NOP);
       break;
     case 0x8E:  // AUX overflow
       vis = read_visible_();
       ir = read_infrared_();
       tp = temp_at_begin_;
-      write8(SI1145_REG_COMMAND, SI1145_NOP);
+      write8_(SI1145_REG_COMMAND, SI1145_NOP);
       break;
     default:
       vis = read_visible_();
@@ -169,8 +169,8 @@ void SI1145Component::update() {
   uint16_t _infrared_ar = ir;
 
   // expected by IC
-  uint8_t irq_status = read8(SI1145_REG_IRQSTAT);
-  write8(SI1145_REG_IRQSTAT, irq_status);
+  uint8_t irq_status = read8_(SI1145_REG_IRQSTAT);
+  write8_(SI1145_REG_IRQSTAT, irq_status);
 
   uint16_t temp = read_temp_();
 
@@ -216,98 +216,104 @@ void SI1145Component::update() {
   if (infrared_mode_auto_) {
     this->auto_range_infrared_(_infrared_ar);
   }
-  write8(SI1145_REG_COMMAND, SI1145_NOP);
+  write8_(SI1145_REG_COMMAND, SI1145_NOP);
 }
 
 uint16_t SI1145Component::read_visible_() {
-  uint16_t r = read16(SI1145_REG_ALSVISDATA0);
+  uint16_t r = read16_(SI1145_REG_ALSVISDATA0);
   uint16_t vatzero = VALUE_AT_ZERO_HIGH;
   if (visible_range_ == Range::RANGE_LOW) {
     vatzero = VALUE_AT_ZERO_LOW;
   }
-  if (r <= vatzero) r = 0; else r -= vatzero;
+  if (r <= vatzero)
+    r = 0;
+  else
+    r -= vatzero;
   return r;
 }
 
 uint16_t SI1145Component::read_infrared_() {
-  uint16_t r = read16(SI1145_REG_ALSIRDATA0);
+  uint16_t r = read16_(SI1145_REG_ALSIRDATA0);
   uint16_t vatzero = VALUE_AT_ZERO_HIGH;
   if (infrared_range_ == Range::RANGE_LOW) {
     vatzero = VALUE_AT_ZERO_LOW;
   }
-  if (r <= vatzero) r = 0; else r -= vatzero;
+  if (r <= vatzero)
+    r = 0;
+  else
+    r -= vatzero;
   return r;
 }
 
 uint16_t SI1145Component::read_temp_() {
-  uint16_t temp = read8(SI1145_REG_UVINDEX0);
-  temp |= (read8(SI1145_REG_UVINDEX1) << 8);
+  uint16_t temp = read8_(SI1145_REG_UVINDEX0);
+  temp |= (read8_(SI1145_REG_UVINDEX1) << 8);
   return temp;
 }
 
 uint8_t SI1145Component::read_uvindex_() {
-  uint16_t uv = read16(SI1145_REG_UVINDEX0);
+  uint16_t uv = read16_(SI1145_REG_UVINDEX0);
   return (uint8_t)(uv / 100);
 }
 
 bool SI1145Component::begin_() {
-  uint8_t id = read8(SI1145_REG_PARTID);
+  uint8_t id = read8_(SI1145_REG_PARTID);
   if (id != 0x45) return false;  // look for SI1145
 
   this->reset_();
 
   /***********************************/
   // enable UVindex measurement coefficients!
-  write8(SI1145_REG_UCOEFF0, 0x29);
-  write8(SI1145_REG_UCOEFF1, 0x89);
-  write8(SI1145_REG_UCOEFF2, 0x02);
-  write8(SI1145_REG_UCOEFF3, 0x00);
+  write8_(SI1145_REG_UCOEFF0, 0x29);
+  write8_(SI1145_REG_UCOEFF1, 0x89);
+  write8_(SI1145_REG_UCOEFF2, 0x02);
+  write8_(SI1145_REG_UCOEFF3, 0x00);
 
   // enable UV sensor
-  writeParam(SI1145_PARAM_CHLIST,
-             SI1145_PARAM_CHLIST_ENUV | SI1145_PARAM_CHLIST_ENALSIR |
-                 SI1145_PARAM_CHLIST_ENALSVIS | SI1145_PARAM_CHLIST_ENPS1);
+  write_param_(SI1145_PARAM_CHLIST,
+               SI1145_PARAM_CHLIST_ENUV | SI1145_PARAM_CHLIST_ENALSIR |
+                   SI1145_PARAM_CHLIST_ENALSVIS | SI1145_PARAM_CHLIST_ENPS1);
   // enable interrupt on every sample
-  write8(SI1145_REG_INTCFG, SI1145_REG_INTCFG_INTOE);
-  write8(SI1145_REG_IRQEN, SI1145_REG_IRQEN_ALSEVERYSAMPLE);
+  write8_(SI1145_REG_INTCFG, SI1145_REG_INTCFG_INTOE);
+  write8_(SI1145_REG_IRQEN, SI1145_REG_IRQEN_ALSEVERYSAMPLE);
 
   /****************************** Prox Sense 1 */
 
   // program LED current
-  write8(SI1145_REG_PSLED21, 0x03);  // 20mA for LED 1 only
-  writeParam(SI1145_PARAM_PS1ADCMUX, SI1145_PARAM_ADCMUX_LARGEIR);
+  write8_(SI1145_REG_PSLED21, 0x03);  // 20mA for LED 1 only
+  write_param_(SI1145_PARAM_PS1ADCMUX, SI1145_PARAM_ADCMUX_LARGEIR);
   // prox sensor #1 uses LED #1
-  writeParam(SI1145_PARAM_PSLED12SEL, SI1145_PARAM_PSLED12SEL_PS1LED1);
+  write_param_(SI1145_PARAM_PSLED12SEL, SI1145_PARAM_PSLED12SEL_PS1LED1);
   // fastest clocks, clock div 1
-  writeParam(SI1145_PARAM_PSADCGAIN, 0);
+  write_param_(SI1145_PARAM_PSADCGAIN, 0);
   // take 511 clocks to measure
-  writeParam(SI1145_PARAM_PSADCOUNTER, SI1145_PARAM_ADCCOUNTER_511CLK);
+  write_param_(SI1145_PARAM_PSADCOUNTER, SI1145_PARAM_ADCCOUNTER_511CLK);
   // in prox mode, high range
-  writeParam(SI1145_PARAM_PSADCMISC,
-             SI1145_PARAM_PSADCMISC_RANGE | SI1145_PARAM_PSADCMISC_PSMODE);
+  write_param_(SI1145_PARAM_PSADCMISC,
+               SI1145_PARAM_PSADCMISC_RANGE | SI1145_PARAM_PSADCMISC_PSMODE);
 
-  writeParam(SI1145_PARAM_ALSIRADCMUX, SI1145_PARAM_ADCMUX_SMALLIR);
+  write_param_(SI1145_PARAM_ALSIRADCMUX, SI1145_PARAM_ADCMUX_SMALLIR);
   // fastest clocks, clock div 1
-  writeParam(SI1145_PARAM_ALSIRADCGAIN, infrared_gain_);
+  write_param_(SI1145_PARAM_ALSIRADCGAIN, infrared_gain_);
   // take 511 clocks to measure
-  writeParam(SI1145_PARAM_ALSIRADCOUNTER, SI1145_PARAM_ADCCOUNTER_511CLK);
+  write_param_(SI1145_PARAM_ALSIRADCOUNTER, SI1145_PARAM_ADCCOUNTER_511CLK);
   // range mode
-  writeParam(SI1145_PARAM_ALSIRADCMISC, infrared_range_);
+  write_param_(SI1145_PARAM_ALSIRADCMISC, infrared_range_);
 
   // fastest clocks, clock div 1
-  writeParam(SI1145_PARAM_ALSVISADCGAIN, visible_gain_);
+  write_param_(SI1145_PARAM_ALSVISADCGAIN, visible_gain_);
   // take 511 clocks to measure
-  writeParam(SI1145_PARAM_ALSVISADCOUNTER, SI1145_PARAM_ADCCOUNTER_511CLK);
+  write_param_(SI1145_PARAM_ALSVISADCOUNTER, SI1145_PARAM_ADCCOUNTER_511CLK);
   // range mode
-  writeParam(SI1145_PARAM_ALSVISADCMISC, visible_range_);
+  write_param_(SI1145_PARAM_ALSVISADCMISC, visible_range_);
 
   /************************/
 
   // measurement rate for auto
-  write8(SI1145_REG_MEASRATE0, 0xFF);  // 255 * 31.25uS = 8ms
+  write8_(SI1145_REG_MEASRATE0, 0xFF);  // 255 * 31.25uS = 8ms
 
   // auto run
-  write8(SI1145_REG_COMMAND, SI1145_PSALS_AUTO);
+  write8_(SI1145_REG_COMMAND, SI1145_PSALS_AUTO);
 
   temp_at_begin_ = read_temp_();
 
@@ -315,35 +321,35 @@ bool SI1145Component::begin_() {
 }
 
 void SI1145Component::reset_() {
-  write8(SI1145_REG_MEASRATE0, 0);
-  write8(SI1145_REG_MEASRATE1, 0);
-  write8(SI1145_REG_IRQEN, 0);
-  write8(SI1145_REG_IRQMODE1, 0);
-  write8(SI1145_REG_IRQMODE2, 0);
-  write8(SI1145_REG_INTCFG, 0);
-  write8(SI1145_REG_IRQSTAT, 0xFF);
+  write8_(SI1145_REG_MEASRATE0, 0);
+  write8_(SI1145_REG_MEASRATE1, 0);
+  write8_(SI1145_REG_IRQEN, 0);
+  write8_(SI1145_REG_IRQMODE1, 0);
+  write8_(SI1145_REG_IRQMODE2, 0);
+  write8_(SI1145_REG_INTCFG, 0);
+  write8_(SI1145_REG_IRQSTAT, 0xFF);
 
-  write8(SI1145_REG_COMMAND, SI1145_RESET);
+  write8_(SI1145_REG_COMMAND, SI1145_RESET);
   delay(10);
-  write8(SI1145_REG_HWKEY, 0x17);
+  write8_(SI1145_REG_HWKEY, 0x17);
 
   delay(10);
 }
 
 void SI1145Component::set_visible_gain_(uint8_t gain) {
-  writeParam(SI1145_PARAM_ALSVISADCGAIN, gain);
+  write_param_(SI1145_PARAM_ALSVISADCGAIN, gain);
 }
 
 void SI1145Component::set_infrared_gain_(uint8_t gain) {
-  writeParam(SI1145_PARAM_ALSIRADCGAIN, gain);
+  write_param_(SI1145_PARAM_ALSIRADCGAIN, gain);
 }
 
 void SI1145Component::set_visible_range_(uint8_t range) {
-  writeParam(SI1145_PARAM_ALSVISADCMISC, range);
+  write_param_(SI1145_PARAM_ALSVISADCMISC, range);
 }
 
 void SI1145Component::set_infrared_range_(uint8_t range) {
-  writeParam(SI1145_PARAM_ALSIRADCMISC, range);
+  write_param_(SI1145_PARAM_ALSIRADCMISC, range);
 }
 
 void SI1145Component::auto_range_visible_(uint16_t read_value) {
@@ -407,26 +413,26 @@ void SI1145Component::auto_range_infrared_(uint16_t read_value) {
   }
 }
 
-void SI1145Component::write8(uint8_t reg, uint8_t val) {
+void SI1145Component::write8_(uint8_t reg, uint8_t val) {
   this->write_byte(reg, val);
 }
 
-uint8_t SI1145Component::read8(uint8_t reg) {
+uint8_t SI1145Component::read8_(uint8_t reg) {
   uint8_t d8;
   this->read_byte(reg, &d8);
   return d8;
 }
 
-uint16_t SI1145Component::read16(uint8_t reg) {
+uint16_t SI1145Component::read16_(uint8_t reg) {
   uint16_t d16;
   this->read_byte_16(reg, &d16);
   return (d16 >> 8) | ((d16 & 0xFF) << 8);
 }
 
-uint8_t SI1145Component::writeParam(uint8_t p, uint8_t v) {
-  write8(SI1145_REG_PARAMWR, v);
-  write8(SI1145_REG_COMMAND, p | SI1145_PARAM_SET);
-  return read8(SI1145_REG_PARAMRD);
+uint8_t SI1145Component::write_param_(uint8_t p, uint8_t v) {
+  write8_(SI1145_REG_PARAMWR, v);
+  write8_(SI1145_REG_COMMAND, p | SI1145_PARAM_SET);
+  return read8_(SI1145_REG_PARAMRD);
 }
 
 }  // namespace si1145
