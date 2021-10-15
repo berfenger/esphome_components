@@ -6,13 +6,10 @@ from esphome.const import (
     CONF_RANGE,
     CONF_GAIN,
     CONF_MODE,
-    DEVICE_CLASS_EMPTY,
     DEVICE_CLASS_ILLUMINANCE,
     STATE_CLASS_MEASUREMENT,
-    CONF_STATE_CLASS,
     UNIT_EMPTY,
     UNIT_LUX,
-    UNIT_STEPS,
     ICON_BRIGHTNESS_5
 )
 
@@ -48,10 +45,13 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(SI1145Component),
             cv.Optional(CONF_VISIBLE): sensor.sensor_schema(
-                UNIT_EMPTY, ICON_BRIGHTNESS_5, 0, DEVICE_CLASS_EMPTY
+                unit_of_measurement=UNIT_EMPTY,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_ILLUMINANCE,
+                state_class=STATE_CLASS_MEASUREMENT,
+                icon=ICON_BRIGHTNESS_5
             ).extend(
                 {
-                    cv.Optional(CONF_STATE_CLASS, default=STATE_CLASS_MEASUREMENT): sensor.validate_state_class,
                     cv.Optional(CONF_TEMP_CORRECTION, default=False): cv.boolean,
                     cv.Optional(CONF_MODE, default="auto"): cv.enum(
                         MODE_OPTIONS, upper=False
@@ -63,10 +63,13 @@ CONFIG_SCHEMA = (
                 }
             ),
             cv.Optional(CONF_INFRARED): sensor.sensor_schema(
-                UNIT_EMPTY, ICON_BRIGHTNESS_5, 0, DEVICE_CLASS_EMPTY
+                unit_of_measurement=UNIT_EMPTY,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_ILLUMINANCE,
+                state_class=STATE_CLASS_MEASUREMENT,
+                icon=ICON_BRIGHTNESS_5
             ).extend(
                 {
-                    cv.Optional(CONF_STATE_CLASS, default=STATE_CLASS_MEASUREMENT): sensor.validate_state_class,
                     cv.Optional(CONF_TEMP_CORRECTION, default=False): cv.boolean,
                     cv.Optional(CONF_MODE, default="auto"): cv.enum(
                         MODE_OPTIONS, upper=False
@@ -78,18 +81,18 @@ CONFIG_SCHEMA = (
                 }
             ),
             cv.Optional(CONF_UV): sensor.sensor_schema(
-                UNIT_STEPS, ICON_UV, 0, DEVICE_CLASS_EMPTY
-            ).extend(
-                {
-                    cv.Optional(CONF_STATE_CLASS, default=STATE_CLASS_MEASUREMENT): sensor.validate_state_class,
-                }
+                unit_of_measurement=UNIT_EMPTY,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_ILLUMINANCE,
+                state_class=STATE_CLASS_MEASUREMENT,
+                icon=ICON_UV
             ),
             cv.Optional(CONF_CALCULATED_LUX): sensor.sensor_schema(
-                UNIT_LUX, ICON_BRIGHTNESS_5, 0, DEVICE_CLASS_ILLUMINANCE
-            ).extend(
-                {
-                    cv.Optional(CONF_STATE_CLASS, default=STATE_CLASS_MEASUREMENT): sensor.validate_state_class,
-                }
+                unit_of_measurement=UNIT_LUX,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_ILLUMINANCE,
+                state_class=STATE_CLASS_MEASUREMENT,
+                icon=ICON_BRIGHTNESS_5
             ),
         }
     )
