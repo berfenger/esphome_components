@@ -10,9 +10,10 @@ from esphome.const import (
     STATE_CLASS_MEASUREMENT,
     UNIT_VOLT,
     UNIT_AMPERE,
-    UNIT_WATT
+    UNIT_WATT,
 )
 
+CODEOWNERS = ["@berfenger"]
 DEPENDENCIES = ["uart"]
 
 cse7761_ns = cg.esphome_ns.namespace("cse7761")
@@ -68,6 +69,7 @@ CONFIG_SCHEMA = (
 FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
     "cse7761", baud_rate=38400, require_rx=True, require_tx=True
 )
+
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
