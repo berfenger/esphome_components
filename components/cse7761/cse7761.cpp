@@ -5,10 +5,10 @@
 namespace esphome {
 namespace cse7761 {
 
-static const char* const TAG = "cse7761.sensor";
+static const char* const TAG = "cse7761";
 
 /*********************************************************************************************\
- * CSE7761 - Energy  (Sonoff Dual R3 Pow)
+ * CSE7761 - Energy  (Sonoff Dual R3 Pow v1.x)
  *
  * Based on Tasmota source code
  * See https://github.com/arendst/Tasmota/discussions/10793
@@ -103,23 +103,23 @@ struct {
 
 long last_init = 0;
 
-inline int32_t TimeDifference(uint32_t prev, uint32_t next) {
+inline int32_t time_difference(uint32_t prev, uint32_t next) {
   return ((int32_t)(next - prev));
 }
 
-int32_t TimePassedSince(uint32_t timestamp) {
+int32_t time_passed_since(uint32_t timestamp) {
   // Compute the number of milliSeconds passed since timestamp given.
   // Note: value can be negative if the timestamp has not yet been reached.
-  return TimeDifference(timestamp, millis());
+  return time_difference(timestamp, millis());
 }
 
-bool TimeReached(uint32_t timer) {
+bool time_reached(uint32_t timer) {
   // Check if a certain timeout has been reached.
-  const long passed = TimePassedSince(timer);
+  const long passed = time_passed_since(timer);
   return (passed >= 0);
 }
 
-uint32_t Cse7761Ref(uint32_t unit) {
+uint32_t cse7761ref(uint32_t unit) {
   switch (unit) {
     case RmsUC:
       return 0x400000 * 100 / CSE7761Data.coefficient[RmsUC];
@@ -132,21 +132,21 @@ uint32_t Cse7761Ref(uint32_t unit) {
   return 0;
 }
 
-void CSE7761Sensor::setup() { ESP_LOGCONFIG(TAG, "Setting up CSE7761..."); }
+void CSE7761Component::setup() { ESP_LOGCONFIG(TAG, "Setting up CSE7761..."); }
 
-void CSE7761Sensor::loop() {
+void CSE7761Component::loop() {
   if (CSE7761Data.init && millis() > last_init + 1000) {
     last_init = millis();
     if (3 == CSE7761Data.init) {
-      Cse7761Write(CSE7761_SPECIAL_COMMAND, CSE7761_CMD_RESET);
+      this->write_(CSE7761_SPECIAL_COMMAND, CSE7761_CMD_RESET);
     } else if (2 == CSE7761Data.init) {
-      uint16_t syscon = Cse7761Read(0x00, 2);  // Default 0x0A04
-      if ((0x0A04 == syscon) && Cse7761ChipInit()) {
+      uint16_t syscon = this->read_(0x00, 2);  // Default 0x0A04
+      if ((0x0A04 == syscon) && this->chip_init_()) {
         CSE7761Data.ready = 1;
       }
     } else if (1 == CSE7761Data.init) {
       if (1 == CSE7761Data.ready) {
-        Cse7761Write(CSE7761_SPECIAL_COMMAND, CSE7761_CMD_CLOSE_WRITE);
+        this->write_(CSE7761_SPECIAL_COMMAND, CSE7761_CMD_CLOSE_WRITE);
         ESP_LOGD(TAG, "C61: CSE7761 found");
         CSE7761Data.ready = 2;
       }
@@ -155,24 +155,26 @@ void CSE7761Sensor::loop() {
   }
 }
 
-void CSE7761Sensor::dump_config() {
-  ESP_LOGCONFIG(TAG, "CSE7761Sensor:");
+void CSE7761Component::dump_config() {
+  ESP_LOGCONFIG(TAG, "CSE7761:");
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with CSE7761Sensor failed!");
+    ESP_LOGE(TAG, "Communication with CSE7761 failed!");
   }
+  LOG_UPDATE_INTERVAL(this);
+  this->check_uart_settings(38400, 1, uart::UART_CONFIG_PARITY_EVEN, 8);
 }
 
-float CSE7761Sensor::get_setup_priority() const {
-  return setup_priority::HARDWARE;
+float CSE7761Component::get_setup_priority() const {
+  return setup_priority::DATA;
 }
 
-void CSE7761Sensor::update() {
+void CSE7761Component::update() {
   if (2 == CSE7761Data.ready) {
-    this->Cse7761GetData();
+    this->get_data_();
   }
 }
 
-void CSE7761Sensor::Cse7761Write(uint32_t reg, uint32_t data) {
+void CSE7761Component::write_(uint32_t reg, uint32_t data) {
   uint8_t buffer[5];
 
   buffer[0] = 0xA5;
@@ -198,19 +200,19 @@ void CSE7761Sensor::Cse7761Write(uint32_t reg, uint32_t data) {
   this->write_array(buffer, len);
 }
 
-bool CSE7761Sensor::Cse7761ReadOnce(uint32_t reg, uint32_t size,
-                                    uint32_t* value) {
+bool CSE7761Component::read_once_(uint32_t reg, uint32_t size,
+                                  uint32_t* value) {
   while (this->available()) {
     this->read();
   }
 
-  this->Cse7761Write(reg, 0);
+  this->write_(reg, 0);
 
   uint8_t buffer[8] = {0};
   uint32_t rcvd = 0;
   uint32_t timeout = millis() + 3;
 
-  while (!TimeReached(timeout) && (rcvd <= size)) {
+  while (!time_reached(timeout) && (rcvd <= size)) {
     int value = this->read();
     if ((value > -1) && (rcvd < sizeof(buffer) - 1)) {
       buffer[rcvd++] = value;
@@ -242,35 +244,35 @@ bool CSE7761Sensor::Cse7761ReadOnce(uint32_t reg, uint32_t size,
   return true;
 }
 
-uint32_t CSE7761Sensor::Cse7761Read(uint32_t reg, uint32_t size) {
+uint32_t CSE7761Component::read_(uint32_t reg, uint32_t size) {
   bool result = false;  // Start loop
   uint32_t retry = 3;   // Retry up to three times
   uint32_t value = 0;   // Default no value
   while (!result && retry) {
     retry--;
-    result = this->Cse7761ReadOnce(reg, size, &value);
+    result = this->read_once_(reg, size, &value);
   }
   return value;
 }
 
-uint32_t CSE7761Sensor::Cse7761ReadFallback(uint32_t reg, uint32_t prev,
-                                            uint32_t size) {
-  uint32_t value = Cse7761Read(reg, size);
+uint32_t CSE7761Component::read_fallback_(uint32_t reg, uint32_t prev,
+                                          uint32_t size) {
+  uint32_t value = this->read_(reg, size);
   if (!value) {  // Error so use previous value read
     value = prev;
   }
   return value;
 }
 
-bool CSE7761Sensor::Cse7761ChipInit(void) {
+bool CSE7761Component::chip_init_(void) {
   uint16_t calc_chksum = 0xFFFF;
   for (uint32_t i = 0; i < 8; i++) {
-    CSE7761Data.coefficient[i] = Cse7761Read(CSE7761_REG_RMSIAC + i, 2);
+    CSE7761Data.coefficient[i] = this->read_(CSE7761_REG_RMSIAC + i, 2);
     calc_chksum += CSE7761Data.coefficient[i];
   }
   calc_chksum = ~calc_chksum;
-  //  uint16_t dummy = Cse7761Read(CSE7761_REG_COEFFOFFSET, 2);
-  uint16_t coeff_chksum = Cse7761Read(CSE7761_REG_COEFFCHKSUM, 2);
+  //  uint16_t dummy = this->read_(CSE7761_REG_COEFFOFFSET, 2);
+  uint16_t coeff_chksum = this->read_(CSE7761_REG_COEFFCHKSUM, 2);
   if ((calc_chksum != coeff_chksum) || (!calc_chksum)) {
     ESP_LOGD(TAG, PSTR("C61: Default calibration"));
     CSE7761Data.coefficient[RmsIAC] = CSE7761_IREF;
@@ -280,157 +282,16 @@ bool CSE7761Sensor::Cse7761ChipInit(void) {
     //    CSE7761Data.coefficient[PowerPBC] = 0xADD7;
   }
 
-  Cse7761Write(CSE7761_SPECIAL_COMMAND, CSE7761_CMD_ENABLE_WRITE);
+  this->write_(CSE7761_SPECIAL_COMMAND, CSE7761_CMD_ENABLE_WRITE);
 
-  //  delay(8);  // Exception on ESP8266
-  //  uint32_t timeout = millis() + 8;
-  //  while (!TimeReached(timeout)) { }
-
-  uint8_t sys_status = Cse7761Read(CSE7761_REG_SYSSTATUS, 1);
+  uint8_t sys_status = this->read_(CSE7761_REG_SYSSTATUS, 1);
   if (sys_status & 0x10) {  // Write enable to protected registers (WREN)
-                            /*
-                                System Control Register (SYSCON)  Addr:0x00  Default value: 0x0A04
-                                Bit    name               Function description
-                                15-11  NC                 -, the default is 1
-                                10     ADC2ON
-                                                          =1, means ADC current channel B is on (Sonoff
-                               Dual R3 Pow)                         =0, means ADC current channel B is closed                         9      NC                         -, the
-                               default is 1.                         8-6    PGAIB[2:0]         Current channel B analog gain
-                               selection highest bit                         =1XX, PGA of current channel B=16 (Sonoff Dual R3
-                               Pow)                         =011, PGA of current channel B=8                         =010, PGA of current channel B=4
-                                                          =001, PGA of current channel B=2
-                                                          =000, PGA of current channel B=1
-                                5-3    PGAU[2:0]          Highest bit of voltage channel analog gain
-                               selection                         =1XX, PGA of voltage U=16                         =011, PGA of voltage U=8                         =010, PGA of
-                               voltage U=4                         =001, PGA of voltage U=2                         =000, PGA of voltage U=1 (Sonoff
-                               Dual R3 Pow)                         2-0    PGAIA[2:0]         Current channel A analog gain
-                               selection highest bit                         =1XX, PGA of current channel A=16 (Sonoff Dual R3
-                               Pow)                         =011, PGA of current channel A=8                         =010, PGA of current channel A=4
-                                                          =001, PGA of current channel A=2
-                                                          =000, PGA of current channel A=1
-                            */
-    Cse7761Write(CSE7761_REG_SYSCON | 0x80, 0xFF04);
-
-    /*
-        Energy Measure Control Register (EMUCON)  Addr:0x01  Default value:
-       0x0000 Bit    name               Function description 15-14
-       Tsensor_Step[1:0]  Measurement steps of temperature sensor: =2'b00 The
-       first step of temperature sensor measurement, the Offset of OP1 and OP2
-       is +/+. (Sonoff Dual R3 Pow) =2'b01 The second step of temperature sensor
-       measurement, the Offset of OP1 and OP2 is +/-. =2'b10 The third step of
-       temperature sensor measurement, the Offset of OP1 and OP2 is -/+. =2'b11
-       The fourth step of temperature sensor measurement, the Offset of OP1 and
-       OP2 is -/-. After measuring these four results and averaging, the AD
-       value of the current measured temperature can be obtained. 13 tensor_en
-       Temperature measurement module control =0 when the temperature
-       measurement module is closed; (Sonoff Dual R3 Pow) =1 when the
-       temperature measurement module is turned on; 12     comp_off Comparator
-       module close signal: =0 when the comparator module is in working state =1
-       when the comparator module is off (Sonoff Dual R3 Pow) 11-10  Pmode[1:0]
-       Selection of active energy calculation method: Pmode =00, both positive
-       and negative active energy participate in the accumulation, the
-       accumulation method is algebraic sum mode, the reverse REVQ symbol
-       indicates to active power; (Sonoff Dual R3 Pow) Pmode = 01, only
-       accumulate positive active energy; Pmode = 10, both positive and negative
-       active energy participate in the accumulation, and the accumulation
-       method is absolute value method. No reverse active power indication;
-                                  Pmode =11, reserved, the mode is the same as
-       Pmode =00 9      NC                 - 8      ZXD1               The
-       initial value of ZX output is 0, and different waveforms are output
-       according to the configuration of ZXD1 and ZXD0: =0, it means that the ZX
-       output changes only at the selected zero-crossing point (Sonoff Dual R3
-       Pow) =1, indicating that the ZX output changes at both the positive and
-       negative zero crossings 7      ZXD0 =0, indicates that the positive
-       zero-crossing point is selected as the zero-crossing detection signal
-       (Sonoff Dual R3 Pow) =1, indicating that the negative zero-crossing point
-       is selected as the zero-crossing detection signal 6      HPFIBOFF =0,
-       enable current channel B digital high-pass filter (Sonoff Dual R3 Pow)
-                                  =1, turn off the digital high-pass filter of
-       current channel B 5      HPFIAOFF =0, enable current channel A digital
-       high-pass filter (Sonoff Dual R3 Pow) =1, turn off the digital high-pass
-       filter of current channel A 4      HPFUOFF =0, enable U channel digital
-       high pass filter (Sonoff Dual R3 Pow) =1, turn off the U channel digital
-       high-pass filter 3-2    NC                 - 1      PBRUN =1, enable PFB
-       pulse output and active energy register accumulation; (Sonoff Dual R3
-       Pow) =0 (default), turn off PFB pulse output and active energy register
-       accumulation. 0      PARUN =1, enable PFA pulse output and active energy
-       register accumulation; (Sonoff Dual R3 Pow) =0 (default), turn off PFA
-       pulse output and active energy register accumulation.
-    */
-    //    Cse7761Write(CSE7761_REG_EMUCON | 0x80, 0x1003);
-    Cse7761Write(CSE7761_REG_EMUCON | 0x80,
+    this->write_(CSE7761_REG_SYSCON | 0x80, 0xFF04);
+    this->write_(CSE7761_REG_EMUCON | 0x80,
                  0x1183);  // Tasmota enable zero cross detection on both
                            // positive and negative signal
-
-    /*
-        Energy Measure Control Register (EMUCON2)  Addr: 0x13  Default value:
-       0x0001 Bit    name               Function description 15-13  NC - 12
-       SDOCmos =1, SDO pin CMOS open-drain output =0, SDO pin CMOS output
-       (Sonoff Dual R3 Pow) 11     EPB_CB             Energy_PB clear signal
-       control, the default is 0, and it needs to be configured to 1 in UART
-       mode. Clear after reading is not supported in UART mode =1, Energy_PB
-       will not be cleared after reading; (Sonoff Dual R3 Pow) =0, Energy_PB is
-       cleared after reading; 10     EPA_CB             Energy_PA clear signal
-       control, the default is 0, it needs to be configured to 1 in UART mode,
-                                    Clear after reading is not supported in UART
-       mode =1, Energy_PA will not be cleared after reading; (Sonoff Dual R3
-       Pow) =0, Energy_PA is cleared after reading; 9-8    DUPSEL[1:0] Average
-       register update frequency control =00, Update frequency 3.4Hz =01, Update
-       frequency 6.8Hz =10, Update frequency 13.65Hz =11, Update
-       frequency 27.3Hz (Sonoff Dual R3 Pow) 7      CHS_IB             Current
-       channel B measurement selection signal =1, measure the current of channel
-       B (Sonoff Dual R3 Pow) =0, measure the internal temperature of the chip
-        6      PfactorEN          Power factor function enable
-                                  =1, turn on the power factor output function
-       (Sonoff Dual R3 Pow) =0, turn off the power factor output function 5
-       WaveEN             Waveform data, instantaneous data output enable signal
-                                  =1, turn on the waveform data output function
-       (Tasmota add frequency) =0, turn off the waveform data output function
-       (Sonoff Dual R3 Pow) 4      SAGEN              Voltage drop detection
-       enable signal, WaveEN=1 must be configured first =1, turn on the voltage
-       drop detection function =0, turn off the voltage drop detection function
-       (Sonoff Dual R3 Pow) 3      OverEN             Overvoltage, overcurrent,
-       and overload detection enable signal, WaveEN=1 must be configured first
-                                  =1, turn on the overvoltage, overcurrent, and
-       overload detection functions =0, turn off the overvoltage, overcurrent,
-       and overload detection functions (Sonoff Dual R3 Pow) 2      ZxEN
-       Zero-crossing detection, phase angle, voltage frequency measurement
-       enable signal =1, turn on the zero-crossing detection, phase angle, and
-       voltage frequency measurement functions (Tasmota add frequency) =0,
-       disable zero-crossing detection, phase angle, voltage frequency
-       measurement functions (Sonoff Dual R3 Pow) 1      PeakEN             Peak
-       detect enable signal =1, turn on the peak detection function =0, turn off
-       the peak detection function (Sonoff Dual R3 Pow) 0      NC Default is 1
-    */
-    Cse7761Write(CSE7761_REG_EMUCON2 | 0x80, 0x0FC1);  // Sonoff Dual R3 Pow
-                                                       /*
-                                                           Pin function output selection register (PULSE1SEL)  Addr: 0x1D  Default
-                                                          value: 0x3210                                                    Bit    name               Function description                                                    15-13  NC                                                    -
-                                                           12     SDOCmos
-                                                                                     =1, SDO pin CMOS open-drain output
-                                                           15-12  NC                 NC, the default value is 4'b0011
-                                                           11-8   NC                 NC, the default value is 4'b0010
-                                                           7-4    P2Sel              Pulse2 Pin output function selection, see the
-                                                          table below                                                    3-0    P1Sel              Pulse1 Pin output function
-                                                          selection, see the table below                                                    Table Pulsex function output selection
-                                                          list                                                    Pxsel  Select description                                                    0000   Output of energy metering
-                                                          calibration pulse PFA                                                    0001   The output of the energy metering
-                                                          calibration pulse PFB                                                    0010   Comparator indication signal comp_sign                                                    0011
-                                                          Interrupt signal IRQ output (the default is high level, if it is an
-                                                          interrupt, set to 0)                                                    0100   Signal indication of power overload: only PA
-                                                          or PB can be selected                                                    0101   Channel A negative power indicator signal
-                                                           0110   Channel B negative power indicator signal
-                                                           0111   Instantaneous value update interrupt output
-                                                           1000   Average update interrupt output
-                                                           1001   Voltage channel zero-crossing signal output (Tasmota add
-                                                          zero-cross detection)                                                    1010   Current channel A zero-crossing signal
-                                                          output                                                    1011   Current channel B zero crossing signal output                                                    1100                                                    Voltage
-                                                          channel overvoltage indication signal output                                                    1101   Voltage channel
-                                                          undervoltage indication signal output                                                    1110   Current channel A
-                                                          overcurrent signal indication output                                                    1111   Current channel B overcurrent
-                                                          signal indication output
-                                                       */
-    Cse7761Write(CSE7761_REG_PULSE1SEL | 0x80, 0x3290);
+    this->write_(CSE7761_REG_EMUCON2 | 0x80, 0x0FC1);  // Sonoff Dual R3 Pow
+    this->write_(CSE7761_REG_PULSE1SEL | 0x80, 0x3290);
   } else {
     ESP_LOGD(TAG, PSTR("C61: Write failed"));
     return false;
@@ -438,32 +299,34 @@ bool CSE7761Sensor::Cse7761ChipInit(void) {
   return true;
 }
 
-void CSE7761Sensor::Cse7761GetData(void) {
+void CSE7761Component::get_data_(void) {
   // The effective value of current and voltage Rms is a 24-bit signed number,
   // the highest bit is 0 for valid data,
   //   and when the highest bit is 1, the reading will be processed as zero
   // The active power parameter PowerA/B is in two’s complement format, 32-bit
   // data, the highest bit is Sign bit.
   uint32_t value =
-      Cse7761ReadFallback(CSE7761_REG_RMSU, CSE7761Data.voltage_rms, 3);
+      this->read_fallback_(CSE7761_REG_RMSU, CSE7761Data.voltage_rms, 3);
   CSE7761Data.voltage_rms = (value >= 0x800000) ? 0 : value;
 
-  value = Cse7761ReadFallback(CSE7761_REG_RMSIA, CSE7761Data.current_rms[0], 3);
+  value =
+      this->read_fallback_(CSE7761_REG_RMSIA, CSE7761Data.current_rms[0], 3);
   CSE7761Data.current_rms[0] = ((value >= 0x800000) || (value < 1600))
                                    ? 0
                                    : value;  // No load threshold of 10mA
   value =
-      Cse7761ReadFallback(CSE7761_REG_POWERPA, CSE7761Data.active_power[0], 4);
+      this->read_fallback_(CSE7761_REG_POWERPA, CSE7761Data.active_power[0], 4);
   CSE7761Data.active_power[0] = (0 == CSE7761Data.current_rms[0]) ? 0
                                 : (value & 0x80000000)            ? (~value) + 1
                                                                   : value;
 
-  value = Cse7761ReadFallback(CSE7761_REG_RMSIB, CSE7761Data.current_rms[1], 3);
+  value =
+      this->read_fallback_(CSE7761_REG_RMSIB, CSE7761Data.current_rms[1], 3);
   CSE7761Data.current_rms[1] = ((value >= 0x800000) || (value < 1600))
                                    ? 0
                                    : value;  // No load threshold of 10mA
   value =
-      Cse7761ReadFallback(CSE7761_REG_POWERPB, CSE7761Data.active_power[1], 4);
+      this->read_fallback_(CSE7761_REG_POWERPB, CSE7761Data.active_power[1], 4);
   CSE7761Data.active_power[1] = (0 == CSE7761Data.current_rms[1]) ? 0
                                 : (value & 0x80000000)            ? (~value) + 1
                                                                   : value;
@@ -475,7 +338,7 @@ void CSE7761Sensor::Cse7761GetData(void) {
 
   // convert values and publish to sensors
 
-  float voltage = (float)CSE7761Data.voltage_rms / Cse7761Ref(RmsUC);
+  float voltage = (float)CSE7761Data.voltage_rms / cse7761ref(RmsUC);
   if (this->voltage_sensor_ != nullptr) {
     this->voltage_sensor_->publish_state(voltage);
   }
@@ -483,9 +346,9 @@ void CSE7761Sensor::Cse7761GetData(void) {
   for (uint32_t channel = 0; channel < 2; channel++) {
     // Active power = PowerPA * PowerPAC * 1000 / 0x80000000
     float activePower =
-        (float)CSE7761Data.active_power[channel] / Cse7761Ref(PowerPAC);  // W
+        (float)CSE7761Data.active_power[channel] / cse7761ref(PowerPAC);  // W
     float amps =
-        (float)CSE7761Data.current_rms[channel] / Cse7761Ref(RmsIAC);  // A
+        (float)CSE7761Data.current_rms[channel] / cse7761ref(RmsIAC);  // A
     ESP_LOGD(TAG, PSTR("C61: Channel %d power %f W, current %f A"), channel,
              activePower, amps);
     if (channel == 0) {

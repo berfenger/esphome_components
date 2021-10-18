@@ -7,7 +7,8 @@ esphome:
   board: esp-wrover-kit
 
 logger:
-  level: DEBUG
+  level: WARN
+  baud_rate: 0
 
 binary_sensor:
   - platform: gpio
@@ -23,22 +24,25 @@ binary_sensor:
     on_double_click:
       then:
         - switch.toggle: switch_relay2
+  # use this config for momentary switches
   - platform: gpio
     pin:
       number: GPIO32
-      mode: INPUT_PULLDOWN
+      mode: INPUT_PULLUP
+      inverted: true
     name: "Momentary switch 1"
     internal: True
-    on_click:
+    on_press:
       then:
         - switch.toggle: switch_relay1
   - platform: gpio
     pin:
       number: GPIO33
-      mode: INPUT_PULLDOWN
+      mode: INPUT_PULLUP
+      inverted: true
     name: "Momentary switch 2"
     internal: True
-    on_click:
+    on_press:
       then:
         - switch.toggle: switch_relay2
   # use this config for latching switches
@@ -46,7 +50,7 @@ binary_sensor:
   #   pin:
   #     number: GPIO32
   #     mode: INPUT_PULLDOWN
-  #   name: "Momentary switch 1"
+  #   name: "Latching switch 1"
   #   internal: True
   #   on_state:
   #     then:
@@ -55,7 +59,7 @@ binary_sensor:
   #   pin:
   #     number: GPIO33
   #     mode: INPUT_PULLDOWN
-  #   name: "Momentary switch 2"
+  #   name: "Latching switch 2"
   #   internal: True
   #   on_state:
   #     then:
@@ -71,12 +75,10 @@ switch:
     id: switch_relay1
     pin:
       number: GPIO27
-      inverted: true
   - platform: gpio
     id: switch_relay2
     pin:
       number: GPIO14
-      inverted: true
 
 sensor:
   platform: cse7761
