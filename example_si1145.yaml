@@ -31,6 +31,6 @@ sensor:
       mode: manual
       range: low
       gain: 2
-    uvindex:
+    uv_index:
       name: "UV index sensor"
     update_interval: 5s

@@ -1,5 +1,7 @@
 #include "si1145.h"
 
+#include <cmath>
+
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -7,8 +9,7 @@ namespace si1145 {
 
 static const char *const TAG = "si1145.sensor";
 
-inline float visible_temp_correction(uint16_t value, uint8_t range,
-                                     uint8_t gain, uint16_t temp,
+inline float visible_temp_correction(uint16_t value, uint8_t range, uint8_t gain, uint16_t temp,
                                      uint16_t temp_at_begin) {
   float vis = value;
   if (range == Range::RANGE_LOW) {
@@ -42,8 +43,7 @@ inline float visible_temp_correction(uint16_t value, uint8_t range,
   return vis;
 }
 
-inline float infrared_temp_correction(uint16_t value, uint8_t range,
-                                      uint8_t gain, uint16_t temp,
+inline float infrared_temp_correction(uint16_t value, uint8_t range, uint8_t gain, uint16_t temp,
                                       uint16_t temp_at_begin) {
   float ir = value;
   if (range == Range::RANGE_LOW) {
@@ -65,24 +65,19 @@ inline float infrared_temp_correction(uint16_t value, uint8_t range,
   return ir;
 }
 
-inline float illumination_combine_sensors(float vis_value, uint8_t vis_range,
-                                          uint8_t vis_gain, float ir_value,
+inline float illumination_combine_sensors(float vis_value, uint8_t vis_range, uint8_t vis_gain, float ir_value,
                                           uint8_t ir_range, uint8_t ir_gain) {
-  float _rangeVis = (vis_range == Range::RANGE_LOW)
-                        ? 1.0f
-                        : 14.5f;  // 14.5 if high range, 1 otherwise
-  float _rangeIR = (ir_range == Range::RANGE_LOW)
-                       ? 1.0f
-                       : 14.5f;  // 14.5 if high range, 1 otherwise
-  float lux = (5.41f * vis_value * _rangeVis) / (1 << vis_gain) +
-              (-0.08f * ir_value * _rangeIR) / (1 << ir_gain);
-  if (lux < 0) lux = 0;
+  float range_vis = (vis_range == Range::RANGE_LOW) ? 1.0f : 14.5f;  // 14.5 if high range, 1 otherwise
+  float range_ir = (ir_range == Range::RANGE_LOW) ? 1.0f : 14.5f;    // 14.5 if high range, 1 otherwise
+  float lux = (5.41f * vis_value * range_vis) / (1 << vis_gain) + (-0.08f * ir_value * range_ir) / (1 << ir_gain);
+  if (lux < 0)
+    lux = 0;
   return lux;
 }
 
 inline float apply_range_and_gain(float value, uint8_t range, uint8_t gain) {
-  float _rangeFactor = (range == Range::RANGE_LOW) ? 1.0f : 14.5f;
-  return (value * _rangeFactor) / (1 << gain);
+  float range_factor = (range == Range::RANGE_LOW) ? 1.0f : 14.5f;
+  return (value * range_factor) / (1 << gain);
 }
 
 void SI1145Component::setup() {
@@ -91,6 +86,10 @@ void SI1145Component::setup() {
     this->mark_failed();
     return;
   }
+  this->set_visible_gain_(this->visible_gain_);
+  this->set_visible_range_(this->visible_range_);
+  this->set_infrared_gain_(this->infrared_gain_);
+  this->set_infrared_range_(this->infrared_range_);
 }
 
 void SI1145Component::dump_config() {
@@ -101,9 +100,7 @@ void SI1145Component::dump_config() {
   }
 }
 
-float SI1145Component::get_setup_priority() const {
-  return setup_priority::DATA;
-}
+float SI1145Component::get_setup_priority() const { return setup_priority::DATA; }
 
 void SI1145Component::update() {
   // force measure
@@ -165,56 +162,47 @@ void SI1145Component::update() {
   }
 
   // save raw values for auto range
-  uint16_t _visible_ar = vis;
-  uint16_t _infrared_ar = ir;
+  uint16_t visible_ar = vis;
+  uint16_t infrared_ar = ir;
 
   // expected by IC
   uint8_t irq_status = read8_(SI1145_REG_IRQSTAT);
   write8_(SI1145_REG_IRQSTAT, irq_status);
 
-  uint16_t temp = read_temp_();
-
   // temp correction
   if (this->visible_temp_correction_ && vis != OVERFLOW_VALUE) {
-    vis = visible_temp_correction(vis, visible_range_, visible_gain_, temp,
-                                  temp_at_begin_);
+    vis = visible_temp_correction(vis, visible_range_, visible_gain_, tp, temp_at_begin_);
   }
 
   if (this->infrared_temp_correction_ && ir != OVERFLOW_VALUE) {
-    ir = infrared_temp_correction(ir, infrared_range_, infrared_gain_, temp,
-                                  temp_at_begin_);
+    ir = infrared_temp_correction(ir, infrared_range_, infrared_gain_, tp, temp_at_begin_);
   }
 
   // update sensors
   if (this->visible_sensor_ != nullptr && vis != OVERFLOW_VALUE) {
-    this->visible_sensor_->publish_state(
-        apply_range_and_gain(vis, visible_range_, visible_gain_));
+    this->visible_sensor_->publish_state(apply_range_and_gain(vis, visible_range_, visible_gain_));
   }
 
   if (this->infrared_sensor_ != nullptr && ir != OVERFLOW_VALUE) {
-    this->infrared_sensor_->publish_state(
-        apply_range_and_gain(ir, infrared_range_, infrared_gain_));
+    this->infrared_sensor_->publish_state(apply_range_and_gain(ir, infrared_range_, infrared_gain_));
   }
 
-  if (this->uvindex_sensor_ != nullptr) {
+  if (this->uvindex_sensor_ != nullptr && vis != OVERFLOW_VALUE && ir != OVERFLOW_VALUE) {
     uint8_t uf = read_uvindex_();
     this->uvindex_sensor_->publish_state(uf);
   }
 
-  if (this->illuminance_sensor_ != nullptr && vis != OVERFLOW_VALUE &&
-      ir != OVERFLOW_VALUE) {
-    float lux =
-        illumination_combine_sensors(vis, visible_range_, visible_gain_, ir,
-                                     infrared_range_, infrared_gain_);
+  if (this->illuminance_sensor_ != nullptr && vis != OVERFLOW_VALUE && ir != OVERFLOW_VALUE) {
+    float lux = illumination_combine_sensors(vis, visible_range_, visible_gain_, ir, infrared_range_, infrared_gain_);
     this->illuminance_sensor_->publish_state(lux);
   }
 
   // auto range
   if (visible_mode_auto_) {
-    this->auto_range_visible_(_visible_ar);
+    this->auto_range_visible_(visible_ar);
   }
   if (infrared_mode_auto_) {
-    this->auto_range_infrared_(_infrared_ar);
+    this->auto_range_infrared_(infrared_ar);
   }
   write8_(SI1145_REG_COMMAND, SI1145_NOP);
 }
@@ -252,13 +240,14 @@ uint16_t SI1145Component::read_temp_() {
 }
 
 uint8_t SI1145Component::read_uvindex_() {
-  uint16_t uv = read16_(SI1145_REG_UVINDEX0);
-  return (uint8_t)(uv / 100);
+  int uv = read16_(SI1145_REG_UVINDEX0);
+  return (uint8_t) std::floor(uv / 100.0);
 }
 
 bool SI1145Component::begin_() {
   uint8_t id = read8_(SI1145_REG_PARTID);
-  if (id != 0x45) return false;  // look for SI1145
+  if (id != 0x45)
+    return false;  // look for SI1145
 
   this->reset_();
 
@@ -270,9 +259,8 @@ bool SI1145Component::begin_() {
   write8_(SI1145_REG_UCOEFF3, 0x00);
 
   // enable UV sensor
-  write_param_(SI1145_PARAM_CHLIST,
-               SI1145_PARAM_CHLIST_ENUV | SI1145_PARAM_CHLIST_ENALSIR |
-                   SI1145_PARAM_CHLIST_ENALSVIS | SI1145_PARAM_CHLIST_ENPS1);
+  write_param_(SI1145_PARAM_CHLIST, SI1145_PARAM_CHLIST_ENUV | SI1145_PARAM_CHLIST_ENALSIR |
+                                        SI1145_PARAM_CHLIST_ENALSVIS | SI1145_PARAM_CHLIST_ENPS1);
   // enable interrupt on every sample
   write8_(SI1145_REG_INTCFG, SI1145_REG_INTCFG_INTOE);
   write8_(SI1145_REG_IRQEN, SI1145_REG_IRQEN_ALSEVERYSAMPLE);
@@ -289,8 +277,7 @@ bool SI1145Component::begin_() {
   // take 511 clocks to measure
   write_param_(SI1145_PARAM_PSADCOUNTER, SI1145_PARAM_ADCCOUNTER_511CLK);
   // in prox mode, high range
-  write_param_(SI1145_PARAM_PSADCMISC,
-               SI1145_PARAM_PSADCMISC_RANGE | SI1145_PARAM_PSADCMISC_PSMODE);
+  write_param_(SI1145_PARAM_PSADCMISC, SI1145_PARAM_PSADCMISC_RANGE | SI1145_PARAM_PSADCMISC_PSMODE);
 
   write_param_(SI1145_PARAM_ALSIRADCMUX, SI1145_PARAM_ADCMUX_SMALLIR);
   // fastest clocks, clock div 1
@@ -336,21 +323,13 @@ void SI1145Component::reset_() {
   delay(10);
 }
 
-void SI1145Component::set_visible_gain_(uint8_t gain) {
-  write_param_(SI1145_PARAM_ALSVISADCGAIN, gain);
-}
+void SI1145Component::set_visible_gain_(uint8_t gain) { write_param_(SI1145_PARAM_ALSVISADCGAIN, gain); }
 
-void SI1145Component::set_infrared_gain_(uint8_t gain) {
-  write_param_(SI1145_PARAM_ALSIRADCGAIN, gain);
-}
+void SI1145Component::set_infrared_gain_(uint8_t gain) { write_param_(SI1145_PARAM_ALSIRADCGAIN, gain); }
 
-void SI1145Component::set_visible_range_(uint8_t range) {
-  write_param_(SI1145_PARAM_ALSVISADCMISC, range);
-}
+void SI1145Component::set_visible_range_(uint8_t range) { write_param_(SI1145_PARAM_ALSVISADCMISC, range); }
 
-void SI1145Component::set_infrared_range_(uint8_t range) {
-  write_param_(SI1145_PARAM_ALSIRADCMISC, range);
-}
+void SI1145Component::set_infrared_range_(uint8_t range) { write_param_(SI1145_PARAM_ALSIRADCMISC, range); }
 
 void SI1145Component::auto_range_visible_(uint16_t read_value) {
   if (read_value > 25000) {
@@ -413,18 +392,16 @@ void SI1145Component::auto_range_infrared_(uint16_t read_value) {
   }
 }
 
-void SI1145Component::write8_(uint8_t reg, uint8_t val) {
-  this->write_byte(reg, val);
-}
+void SI1145Component::write8_(uint8_t reg, uint8_t val) { this->write_byte(reg, val); }
 
 uint8_t SI1145Component::read8_(uint8_t reg) {
-  uint8_t d8;
+  uint8_t d8 = 0;
   this->read_byte(reg, &d8);
   return d8;
 }
 
 uint16_t SI1145Component::read16_(uint8_t reg) {
-  uint16_t d16;
+  uint16_t d16 = 0;
   this->read_byte_16(reg, &d16);
   return (d16 >> 8) | ((d16 & 0xFF) << 8);
 }

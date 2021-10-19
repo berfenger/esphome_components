@@ -10,13 +10,13 @@ from esphome.const import (
     STATE_CLASS_MEASUREMENT,
     UNIT_EMPTY,
     UNIT_LUX,
-    ICON_BRIGHTNESS_5
+    ICON_BRIGHTNESS_5,
+    CONF_CALCULATED_LUX,
+    CONF_INFRARED,
+    CONF_VISIBLE,
 )
 
-CONF_CALCULATED_LUX = "calculated_lux"
-CONF_INFRARED = "infrared"
-CONF_VISIBLE = "visible"
-CONF_UV = "uvindex"
+CONF_UV_INDEX = "uv_index"
 CONF_TEMP_CORRECTION = "temp_correction"
 ICON_UV = "mdi:sun-wireless"
 
@@ -29,16 +29,10 @@ SI1145Component = si1145_ns.class_(
 )
 
 SI1145Mode = si1145_ns.enum("SI1145Mode")
-MODE_OPTIONS = {
-    "auto": True,
-    "manual": False
-}
+MODE_OPTIONS = {"auto": True, "manual": False}
 
 SI1145Range = si1145_ns.enum("SI1145Range")
-RANGE_OPTIONS = {
-    "high": SI1145Range.RANGE_HIGH,
-    "low": SI1145Range.RANGE_LOW
-}
+RANGE_OPTIONS = {"high": SI1145Range.RANGE_HIGH, "low": SI1145Range.RANGE_LOW}
 
 CONFIG_SCHEMA = (
     cv.Schema(
@@ -49,7 +43,7 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=0,
                 device_class=DEVICE_CLASS_ILLUMINANCE,
                 state_class=STATE_CLASS_MEASUREMENT,
-                icon=ICON_BRIGHTNESS_5
+                icon=ICON_BRIGHTNESS_5,
             ).extend(
                 {
                     cv.Optional(CONF_TEMP_CORRECTION, default=False): cv.boolean,
@@ -67,7 +61,7 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=0,
                 device_class=DEVICE_CLASS_ILLUMINANCE,
                 state_class=STATE_CLASS_MEASUREMENT,
-                icon=ICON_BRIGHTNESS_5
+                icon=ICON_BRIGHTNESS_5,
             ).extend(
                 {
                     cv.Optional(CONF_TEMP_CORRECTION, default=False): cv.boolean,
@@ -80,19 +74,19 @@ CONFIG_SCHEMA = (
                     ),
                 }
             ),
-            cv.Optional(CONF_UV): sensor.sensor_schema(
+            cv.Optional(CONF_UV_INDEX): sensor.sensor_schema(
                 unit_of_measurement=UNIT_EMPTY,
                 accuracy_decimals=0,
                 device_class=DEVICE_CLASS_ILLUMINANCE,
                 state_class=STATE_CLASS_MEASUREMENT,
-                icon=ICON_UV
+                icon=ICON_UV,
             ),
             cv.Optional(CONF_CALCULATED_LUX): sensor.sensor_schema(
                 unit_of_measurement=UNIT_LUX,
                 accuracy_decimals=0,
                 device_class=DEVICE_CLASS_ILLUMINANCE,
                 state_class=STATE_CLASS_MEASUREMENT,
-                icon=ICON_BRIGHTNESS_5
+                icon=ICON_BRIGHTNESS_5,
             ),
         }
     )
@@ -121,11 +115,11 @@ async def to_code(config):
         cg.add(var.set_infrared_sensor(sens))
         cg.add(var.set_infrared_auto(conf[CONF_MODE]))
         cg.add(var.set_infrared_temp_correction(conf[CONF_TEMP_CORRECTION]))
-        cg.add(var.set_visible_range(conf[CONF_RANGE]))
-        cg.add(var.set_visible_gain(conf[CONF_GAIN]))
+        cg.add(var.set_infrared_range(conf[CONF_RANGE]))
+        cg.add(var.set_infrared_gain(conf[CONF_GAIN]))
 
-    if CONF_UV in config:
-        conf = config[CONF_UV]
+    if CONF_UV_INDEX in config:
+        conf = config[CONF_UV_INDEX]
         sens = await sensor.new_sensor(conf)
         cg.add(var.set_uvindex_sensor(sens))
 
