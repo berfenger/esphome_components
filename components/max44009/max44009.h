@@ -7,16 +7,10 @@
 namespace esphome {
 namespace max44009 {
 
-enum MAX44009Mode {
-  MAX44009_MODE_AUTO,
-  MAX44009_MODE_LOW_POWER,
-  MAX44009_MODE_CONTINUOUS
-};
+enum MAX44009Mode { MAX44009_MODE_AUTO, MAX44009_MODE_LOW_POWER, MAX44009_MODE_CONTINUOUS };
 
 /// This class implements support for the MAX44009 Illuminance i2c sensor.
-class MAX44009Sensor : public sensor::Sensor,
-                       public PollingComponent,
-                       public i2c::I2CDevice {
+class MAX44009Sensor : public sensor::Sensor, public PollingComponent, public i2c::I2CDevice {
  public:
   MAX44009Sensor() {}
 
@@ -27,8 +21,8 @@ class MAX44009Sensor : public sensor::Sensor,
   float get_setup_priority() const override;
   void update() override;
   void set_mode(MAX44009Mode mode);
-  void set_continuous_mode();
-  void set_low_power_mode();
+  bool set_continuous_mode();
+  bool set_low_power_mode();
 
  protected:
   /// Read the illuminance value
@@ -36,13 +30,8 @@ class MAX44009Sensor : public sensor::Sensor,
   uint8_t read(uint8_t reg);
   void write(uint8_t reg, uint8_t value);
 
-  int _error;
-  MAX44009Mode _mode;
-  enum ErrorCode {
-    NONE = 0,
-    COMMUNICATION_FAILED,
-    WRONG_CHIP_ID,
-  } error_code_{NONE};
+  int error_;
+  MAX44009Mode mode_;
 };
 
 }  // namespace max44009

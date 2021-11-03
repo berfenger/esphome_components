@@ -8,19 +8,19 @@ namespace max44009 {
 static const char *const TAG = "max44009.sensor";
 
 // REGISTERS
-#define MAX44009_REGISTER_CONFIGURATION 0x02
-#define MAX44009_LUX_READING_HIGH 0x03
-#define MAX44009_LUX_READING_LOW 0x04
+static const uint8_t MAX44009_REGISTER_CONFIGURATION = 0x02;
+static const uint8_t MAX44009_LUX_READING_HIGH = 0x03;
+static const uint8_t MAX44009_LUX_READING_LOW = 0x04;
 // CONFIGURATION MASKS
-#define MAX44009_CFG_CONTINUOUS 0x80
+static const uint8_t MAX44009_CFG_CONTINUOUS = 0x80;
 // ERROR CODES
-#define MAX44009_OK 0
-#define MAX44009_ERROR_WIRE_REQUEST -10
-#define MAX44009_ERROR_OVERFLOW -20
-#define MAX44009_ERROR_HIGH_BYTE -30
-#define MAX44009_ERROR_LOW_BYTE -31
+static const uint8_t MAX44009_OK = 0;
+static const uint8_t MAX44009_ERROR_WIRE_REQUEST = -10;
+static const uint8_t MAX44009_ERROR_OVERFLOW = -20;
+static const uint8_t MAX44009_ERROR_HIGH_BYTE = -30;
+static const uint8_t MAX44009_ERROR_LOW_BYTE = -31;
 
-inline int convertToLux(uint8_t datahigh, uint8_t datalow) {
+inline int convert_to_lux(uint8_t datahigh, uint8_t datalow) {
   uint8_t exponent = datahigh >> 4;
   uint32_t mantissa = ((datahigh & 0x0F) << 4) + (datalow & 0x0F);
   float lux = ((0x0001 << exponent) * 0.045) * mantissa;
@@ -29,16 +29,11 @@ inline int convertToLux(uint8_t datahigh, uint8_t datalow) {
 
 void MAX44009Sensor::setup() {
   ESP_LOGCONFIG(TAG, "Setting up MAX44009...");
-  this->raw_begin_transmission();
-  if (!this->raw_end_transmission()) {
-    this->error_code_ = COMMUNICATION_FAILED;
-    this->mark_failed();
-    return;
-  }
-  if (_mode == MAX44009Mode::MAX44009_MODE_LOW_POWER) {
-    this->set_low_power_mode();
-  } else if (_mode == MAX44009Mode::MAX44009_MODE_CONTINUOUS) {
-    this->set_continuous_mode();
+  bool state_ok = false;
+  if (this->mode_ == MAX44009Mode::MAX44009_MODE_LOW_POWER) {
+    state_ok = this->set_low_power_mode();
+  } else if (this->mode_ == MAX44009Mode::MAX44009_MODE_CONTINUOUS) {
+    state_ok = this->set_continuous_mode();
   } else {
     /*
      * Mode AUTO: Set mode depending on update interval
@@ -47,11 +42,13 @@ void MAX44009Sensor::setup() {
      * - On continuous mode, the IC continuously measures lux intensity
      */
     if (this->get_update_interval() < 800) {
-      this->set_continuous_mode();
+      state_ok = this->set_continuous_mode();
     } else {
-      this->set_low_power_mode();
+      state_ok = this->set_low_power_mode();
     }
   }
+  if (!state_ok)
+    this->mark_failed();
 }
 
 void MAX44009Sensor::dump_config() {
@@ -62,16 +59,13 @@ void MAX44009Sensor::dump_config() {
   }
 }
 
-float MAX44009Sensor::get_setup_priority() const {
-  return setup_priority::DATA;
-}
+float MAX44009Sensor::get_setup_priority() const { return setup_priority::DATA; }
 
 void MAX44009Sensor::update() {
   // update sensor illuminance value
   float lux = this->read_illuminance_();
-  if (_error != MAX44009_OK) {
+  if (this->error_ != MAX44009_OK) {
     this->status_set_error();
-    this->publish_state(NAN);
   } else {
     this->status_clear_error();
     this->publish_state(lux);
@@ -80,66 +74,70 @@ void MAX44009Sensor::update() {
 
 float MAX44009Sensor::read_illuminance_() {
   uint8_t datahigh = read(MAX44009_LUX_READING_HIGH);
-  if (_error != MAX44009_OK) {
-    _error = MAX44009_ERROR_HIGH_BYTE;
-    return _error;
+  if (error_ != MAX44009_OK) {
+    this->error_ = MAX44009_ERROR_HIGH_BYTE;
+    return this->error_;
   }
   uint8_t datalow = read(MAX44009_LUX_READING_LOW);
-  if (_error != MAX44009_OK) {
-    _error = MAX44009_ERROR_LOW_BYTE;
-    return _error;
+  if (error_ != MAX44009_OK) {
+    this->error_ = MAX44009_ERROR_LOW_BYTE;
+    return this->error_;
   }
   uint8_t exponent = datahigh >> 4;
   if (exponent == 0x0F) {
-    _error = MAX44009_ERROR_OVERFLOW;
-    return _error;
+    this->error_ = MAX44009_ERROR_OVERFLOW;
+    return this->error_;
   }
 
-  float lux = convertToLux(datahigh, datalow);
+  float lux = convert_to_lux(datahigh, datalow);
   return lux;
 }
 
-void MAX44009Sensor::set_continuous_mode() {
+bool MAX44009Sensor::set_continuous_mode() {
   uint8_t config = read(MAX44009_REGISTER_CONFIGURATION);
-  if (_error == MAX44009_OK) {
+  if (this->error_ == MAX44009_OK) {
     config |= MAX44009_CFG_CONTINUOUS;
-    write(MAX44009_REGISTER_CONFIGURATION, config);
+    this->write(MAX44009_REGISTER_CONFIGURATION, config);
     this->status_clear_error();
+    return true;
   } else {
     this->status_set_error();
+    return false;
   }
 }
 
-void MAX44009Sensor::set_low_power_mode() {
+bool MAX44009Sensor::set_low_power_mode() {
   uint8_t config = read(MAX44009_REGISTER_CONFIGURATION);
-  if (_error == MAX44009_OK) {
+  if (this->error_ == MAX44009_OK) {
     config &= ~MAX44009_CFG_CONTINUOUS;
-    write(MAX44009_REGISTER_CONFIGURATION, config);
+    this->write(MAX44009_REGISTER_CONFIGURATION, config);
     this->status_clear_error();
+    return true;
   } else {
     this->status_set_error();
+    return false;
   }
 }
 
 uint8_t MAX44009Sensor::read(uint8_t reg) {
-  uint8_t data;
+  uint8_t data = 0;
   if (!this->read_byte(reg, &data)) {
-    _error = MAX44009_ERROR_WIRE_REQUEST;
+    this->error_ = MAX44009_ERROR_WIRE_REQUEST;
   } else {
-    _error = MAX44009_OK;
+    this->error_ = MAX44009_OK;
   }
   return data;
 }
 
 void MAX44009Sensor::write(uint8_t reg, uint8_t value) {
   if (!this->write_byte(reg, value)) {
-    _error = MAX44009_ERROR_WIRE_REQUEST;
+    this->error_ = MAX44009_ERROR_WIRE_REQUEST;
   } else {
-    _error = MAX44009_OK;
+    this->error_ = MAX44009_OK;
   }
 }
 
-void MAX44009Sensor::set_mode(MAX44009Mode mode) { this->_mode = mode; }
+void MAX44009Sensor::set_mode(MAX44009Mode mode) { this->mode_ = mode; }
 
 }  // namespace max44009
 }  // namespace esphome
