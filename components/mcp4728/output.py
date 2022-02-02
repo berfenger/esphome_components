@@ -22,11 +22,21 @@ GAIN_OPTIONS = {
     "X2": MCP4728Gain.MCP4728_GAIN_X2
 }
 
+MCP4728Channel = mcp4728_ns.enum("MCP4728Channel")
+CHANNEL_OPTIONS = {
+    "A": MCP4728Channel.MCP4728_CHANNEL_A,
+    "B": MCP4728Channel.MCP4728_CHANNEL_B,
+    "C": MCP4728Channel.MCP4728_CHANNEL_C,
+    "D": MCP4728Channel.MCP4728_CHANNEL_D
+}
+
 CONFIG_SCHEMA = output.FLOAT_OUTPUT_SCHEMA.extend(
     {
         cv.Required(CONF_ID): cv.declare_id(MCP4728Channel),
         cv.GenerateID(CONF_MCP4728_ID): cv.use_id(MCP4728Output),
-        cv.Required(CONF_CHANNEL): cv.int_range(min=0, max=3),
+        cv.Required(CONF_CHANNEL): cv.enum(
+            CHANNEL_OPTIONS, upper=True
+        ),
         cv.Optional(CONF_VREF, default="vdd"): cv.enum(
             VREF_OPTIONS, upper=False
         ),

@@ -1,6 +1,7 @@
 #include "mcp4728_output.h"
-#include "esphome/core/log.h"
+
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace mcp4728 {
@@ -9,17 +10,6 @@ static const char *const TAG = "mcp4728";
 
 void MCP4728Output::setup() {
   ESP_LOGCONFIG(TAG, "Setting up MCP4728OutputComponent...");
-  this->raw_begin_transmission();
-  if (!this->raw_end_transmission()) {
-    this->error_code_ = COMMUNICATION_FAILED;
-    this->mark_failed();
-    return;
-  }
-
-  this->set_channel_value(0, 0);
-  this->set_channel_value(1, 0);
-  this->set_channel_value(2, 0);
-  this->set_channel_value(3, 0);
 }
 
 void MCP4728Output::dump_config() {
@@ -40,57 +30,66 @@ void MCP4728Output::loop() {
   }
 }
 
-void MCP4728Output::set_channel_value(uint8_t channel, uint16_t value) {
-  ESP_LOGD(TAG, "Setting MCP4728 channel %d to %d!", channel, value);
+void MCP4728Output::set_channel_value(MCP4728_CHANNEL channel, uint16_t value) {
+  uint8_t cn = 0;
+  if (channel == MCP4728_CHANNEL_A)
+    cn = 'A';
+  else if (channel == MCP4728_CHANNEL_B)
+    cn = 'B';
+  else if (channel == MCP4728_CHANNEL_C)
+    cn = 'C';
+  else
+    cn = 'D';
+  ESP_LOGD(TAG, "Setting MCP4728 channel %c to %d!", cn, value);
   reg_[channel].data = value;
   this->update = true;
 }
 
 uint8_t MCP4728Output::multiWrite() {
-  this->raw_begin_transmission();
-  for (uint8_t i = 0; i < 4; ++i)
-  {
+  for (uint8_t i = 0; i < 4; ++i) {
     uint8_t wd[3];
     wd[0] = ((uint8_t)CMD::MULTI_WRITE | (i << 1)) & 0xFE;
-    wd[1] = ((uint8_t)reg_[i].vref << 7) | ((uint8_t)reg_[i].pd << 5) | ((uint8_t)reg_[i].gain << 4) | highByte(reg_[i].data);
+    wd[1] = ((uint8_t)reg_[i].vref << 7) | ((uint8_t)reg_[i].pd << 5) |
+            ((uint8_t)reg_[i].gain << 4) | highByte(reg_[i].data);
     wd[2] = lowByte(reg_[i].data);
-    this->raw_write(wd, sizeof(wd));
+    this->write(wd, sizeof(wd));
   }
-  return this->raw_end_transmission();
+  return 0;
 }
 
 uint8_t MCP4728Output::seqWrite() {
-  this->raw_begin_transmission();
-  uint8_t sb = (uint8_t)CMD::SEQ_WRITE;
-  this->raw_write(&sb, sizeof(sb));
-  for (uint8_t i = 0; i < 4; ++i) {
-    uint8_t wd[2];
-    wd[0] = ((uint8_t)reg_[i].vref << 7) | ((uint8_t)reg_[i].pd << 5) | ((uint8_t)reg_[i].gain << 4) | highByte(reg_[i].data);
-    wd[1] = lowByte(reg_[i].data);
-    this->raw_write(wd, sizeof(wd));
+  uint8_t wd[9];
+  wd[0] = (uint8_t)CMD::SEQ_WRITE;
+  for (uint8_t i = 0; i < 4; i++) {
+    wd[i * 2 + 1] = ((uint8_t)reg_[i].vref << 7) | ((uint8_t)reg_[i].pd << 5) |
+                    ((uint8_t)reg_[i].gain << 4) | highByte(reg_[i].data);
+    wd[i * 2 + 2] = lowByte(reg_[i].data);
   }
-  return this->raw_end_transmission();
+  this->write(wd, sizeof(wd));
+  return 0;
 }
 
-void MCP4728Output::selectVref(uint8_t channel, MCP4728_VREF vref) {
+void MCP4728Output::selectVref(MCP4728_CHANNEL channel, MCP4728_VREF vref) {
   reg_[channel].vref = vref;
 
   this->update = true;
 }
 
-void MCP4728Output::selectPowerDown(uint8_t channel, PWR_DOWN pd) {
+void MCP4728Output::selectPowerDown(MCP4728_CHANNEL channel, PWR_DOWN pd) {
   reg_[channel].pd = pd;
 
   this->update = true;
 }
 
-void MCP4728Output::selectGain(uint8_t channel, MCP4728_GAIN gain) {
+void MCP4728Output::selectGain(MCP4728_CHANNEL channel, MCP4728_GAIN gain) {
   reg_[channel].gain = gain;
 
   this->update = true;
 }
 
-MCP4728Channel *MCP4728Output::create_channel(uint8_t channel, MCP4728_VREF vref, MCP4728_GAIN gain) {
+MCP4728Channel *MCP4728Output::create_channel(MCP4728_CHANNEL channel,
+                                              MCP4728_VREF vref,
+                                              MCP4728_GAIN gain) {
   auto *c = new MCP4728Channel(this, channel, vref, gain);
   return c;
 }

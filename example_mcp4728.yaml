@@ -13,21 +13,21 @@ output:
   - platform: mcp4728
     id: ac_dimmer_1
     mcp4728_id: the_dac
-    channel: 0 # channel A, VREF=VDD
+    channel: A # VREF=VDD
   - platform: mcp4728
     id: ac_dimmer_2
     mcp4728_id: the_dac
-    channel: 1 # channel B
+    channel: B
     vref: vdd # VREF=VDD
   - platform: mcp4728
     id: ac_dimmer_3
     mcp4728_id: the_dac
-    channel: 2 # channel C
+    channel: C
     vref: internal # VREF = internal (2.048V), gain = X1
   - platform: mcp4728
     id: light_dimmer_1
     mcp4728_id: the_dac
-    channel: 3 # channel D
+    channel: D
     vref: internal # VREF = internal (2.048V)
     gain: X2 # gain X2
 
