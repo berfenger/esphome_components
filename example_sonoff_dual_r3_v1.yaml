@@ -1,6 +1,3 @@
-external_components:
-  - source: github://berfenger/esphome_components
-    components: [ cse7761 ]
 esphome:
   name: example_sonoff_dual_r3_v1
   platform: ESP32
