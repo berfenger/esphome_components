@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "esphome/core/log.h"
+#include "Arduino.h"
 
 namespace esphome {
 namespace si1145 {
